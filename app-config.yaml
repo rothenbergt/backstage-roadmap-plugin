@@ -23,6 +23,10 @@ auth:
 permission:
   enabled: true
 
+roadmap:
+  adminUsers:
+    - 'user:development/guest'
+
 catalog:
   import:
     entityFilename: catalog-info.yaml

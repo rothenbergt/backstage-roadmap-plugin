@@ -9,7 +9,6 @@
     "dev": "yarn workspaces foreach -A --include @rothenbergt/backstage-plugin-roadmap --include @rothenbergt/backstage-plugin-roadmap-backend --parallel -v -i run start",
     "start": "yarn workspace @rothenbergt/backstage-plugin-roadmap start",
     "start-backend": "yarn workspace @rothenbergt/backstage-plugin-roadmap-backend start",
-    "build:backend": "yarn workspace roadmap-backend build",
     "build:all": "backstage-cli repo build --all",
     "build-image": "yarn workspace backend build-image",
     "tsc": "tsc",
@@ -17,7 +16,6 @@
     "clean": "backstage-cli repo clean",
     "test": "backstage-cli repo test",
     "test:all": "backstage-cli repo test --coverage",
-    "test:e2e": "playwright test",
     "fix": "backstage-cli repo fix",
     "lint": "backstage-cli repo lint --since origin/master",
     "lint:all": "backstage-cli repo lint",
@@ -32,7 +30,6 @@
   "devDependencies": {
     "@backstage/cli": "^0.27.1",
     "@backstage/e2e-test-utils": "^0.1.1",
-    "@playwright/test": "^1.32.3",
     "@spotify/prettier-config": "^12.0.0",
     "@types/react-dom": "^18",
     "node-gyp": "^10.0.0",

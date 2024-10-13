@@ -1,5 +1,6 @@
 {
   "name": "@rothenbergt/backstage-plugin-roadmap-backend",
+  "description": "Backstage Roadmap plugin backend",
   "version": "0.1.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -11,7 +12,13 @@
     "types": "dist/index.d.ts"
   },
   "backstage": {
-    "role": "backend-plugin"
+    "role": "backend-plugin",
+    "pluginId": "roadmap",
+    "pluginPackages": [
+      "@rothenbergt/backstage-plugin-roadmap",
+      "@rothenbergt/backstage-plugin-roadmap-common",
+      "@rothenbergt/backstage-plugin-roadmap-backend"
+    ]
   },
   "scripts": {
     "start": "backstage-cli package start",

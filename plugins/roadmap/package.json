@@ -1,5 +1,6 @@
 {
   "name": "@rothenbergt/backstage-plugin-roadmap",
+  "description": "Backstage Roadmap plugin frontend",
   "version": "0.1.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -11,7 +12,13 @@
     "types": "dist/index.d.ts"
   },
   "backstage": {
-    "role": "frontend-plugin"
+    "role": "frontend-plugin",
+    "pluginId": "roadmap",
+    "pluginPackages": [
+      "@rothenbergt/backstage-plugin-roadmap",
+      "@rothenbergt/backstage-plugin-roadmap-common",
+      "@rothenbergt/backstage-plugin-roadmap-backend"
+    ]
   },
   "sideEffects": false,
   "scripts": {
@@ -30,6 +37,7 @@
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.9.1",
     "@material-ui/lab": "^4.0.0-alpha.61",
+    "@mui/icons-material": "^6.1.3",
     "react-use": "^17.2.4"
   },
   "peerDependencies": {
