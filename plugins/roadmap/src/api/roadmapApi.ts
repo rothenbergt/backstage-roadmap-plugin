@@ -130,7 +130,7 @@ export class RoadmapApiClient implements RoadmapApi {
       featureId,
       text: commentData.text,
       author: commentData.author,
-      createdAt: commentData.createdAt,
+      created_at: commentData.created_at,
     } as Comment;
   }
 

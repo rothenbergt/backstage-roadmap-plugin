@@ -12,8 +12,8 @@ import {
 import { Add as AddIcon } from '@material-ui/icons';
 import { useRoadmapData } from '../../hooks/useRoadmapData';
 import { FeatureColumn } from './FeatureColumn';
-import { IdeaSuggestionForm } from '../IdeaSuggestionForm/IdeaSuggestionForm';
-import { FeatureDetailsDrawer } from '../FeatureDetailsDrawer/FeatureDetailsDrawer';
+import { FeatureSuggestionForm } from '../FeatureSuggestionForm';
+import { FeatureDetailsDrawer } from '../FeatureDetailsDrawer';
 import { Feature } from '@rothenbergt/backstage-plugin-roadmap-common';
 import {
   Progress,
@@ -156,7 +156,7 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
 
       <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
         <Box sx={{ width: 700, padding: 3 }}>
-          <IdeaSuggestionForm
+          <FeatureSuggestionForm
             onSubmit={handleIdeaSubmit}
             onClose={handleDrawerClose}
           />

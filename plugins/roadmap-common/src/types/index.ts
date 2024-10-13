@@ -23,7 +23,7 @@ export interface Comment {
   id: string;
   featureId: string;
   text: string;
-  createdAt: string;
+  created_at: string;
   author: string;
 }
 

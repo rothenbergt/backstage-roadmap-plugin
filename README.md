@@ -14,11 +14,11 @@ The Backstage Roadmap Plugin is a powerful tool designed to help teams manage an
 
 ### Feature Details
 
-[Insert screenshot of the feature details view here]
+![Feature Details Drawer](./assets/FeatureDetailsDrawer.png)
 
 ### Suggest New Feature
 
-[Insert screenshot of the feature suggestion form here]
+![Suggestion Drawer](./assets/SuggestionDrawer.png)
 
 ## ✨ Features
 
