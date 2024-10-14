@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   Grid,
   Button,
-  Drawer,
   Box,
   useTheme,
   useMediaQuery,
@@ -154,14 +153,11 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
         </Grid>
       </Content>
 
-      <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
-        <Box sx={{ width: 700, padding: 3 }}>
-          <FeatureSuggestionForm
-            onSubmit={handleIdeaSubmit}
-            onClose={handleDrawerClose}
-          />
-        </Box>
-      </Drawer>
+      <FeatureSuggestionForm
+        open={drawerOpen}
+        onSubmit={handleIdeaSubmit}
+        onClose={handleDrawerClose}
+      />
 
       <FeatureDetailsDrawer
         feature={selectedFeature}
