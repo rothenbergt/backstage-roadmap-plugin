@@ -2,16 +2,13 @@ import {
   coreServices,
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
-import { createRouter } from './service/router';
+import { createRouter } from './routes';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
 
 /**
  * Backend plugin for the Roadmap feature
  *
  * Provides endpoints for managing roadmap features, comments, and votes
- * with integration to Backstage's permission framework
- *
- * @public
  */
 export const roadmapPlugin = createBackendPlugin({
   pluginId: 'roadmap',

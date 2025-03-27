@@ -14,8 +14,11 @@ import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common
 import { commentsRouter } from './commentsRouter';
 import { featuresRouter } from './featuresRouter';
 import { votesRouter } from './votesRouter';
-import { createPermissionCheckRouter } from './permissionCheckRouter';
+import { permissionCheckRouter } from './permissionCheckRouter';
 
+/**
+ * Options for configuring the roadmap plugin router
+ */
 export interface RouterOptions {
   logger: LoggerService;
   config: Config;
@@ -26,6 +29,10 @@ export interface RouterOptions {
   cache: CacheService;
 }
 
+/**
+ * Creates the main router for the roadmap plugin
+ * Sets up sub-routers for features, comments, votes, and permissions
+ */
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
@@ -34,10 +41,12 @@ export async function createRouter(
   const router = Router();
   router.use(express.json());
 
+  // Set up permission integration for Backstage permission framework
   const permissionIntegrationRouter = createPermissionIntegrationRouter({
     permissions: roadmapPermissions,
   });
 
+  // Health check endpoint
   router.get('/health', (_, response) => {
     logger.info('PONG!');
     response.json({ status: 'ok' });
@@ -45,13 +54,16 @@ export async function createRouter(
 
   router.use(permissionIntegrationRouter);
 
+  // Ensure database schema is ready
   await db.setupSchema();
 
+  // Register sub-routers
   router.use('/comments', commentsRouter(options));
   router.use('/features', featuresRouter(options));
   router.use('/votes', votesRouter(options));
-  router.use('/permissions', createPermissionCheckRouter(options));
+  router.use('/permissions', permissionCheckRouter(options));
 
+  // Add error handling middleware
   const middleware = MiddlewareFactory.create({ logger, config });
   router.use(middleware.error());
 

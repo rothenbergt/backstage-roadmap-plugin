@@ -2,7 +2,7 @@ import { mockServices } from '@backstage/backend-test-utils';
 import express from 'express';
 import request from 'supertest';
 import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
-import { createRouter } from './router';
+import { createRouter } from '../routes/router';
 
 describe('createRouter', () => {
   let app: express.Express;
