@@ -6,12 +6,19 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { RoadmapDatabase } from './types';
+import { LoggerService } from '@backstage/backend-plugin-api';
 
-export class MyDatabaseClass {
+/**
+ * Implementation of the RoadmapDatabase interface using Knex
+ */
+export class RoadmapDatabaseClient implements RoadmapDatabase {
   private readonly knex: Knex;
+  private readonly logger: LoggerService;
 
-  constructor(knexInstance: Knex) {
+  constructor(knexInstance: Knex, logger: LoggerService) {
     this.knex = knexInstance;
+    this.logger = logger;
   }
 
   private get validStatuses(): string[] {
@@ -72,7 +79,7 @@ export class MyDatabaseClass {
         });
       }
     } catch (error) {
-      console.error('Error setting up schema:', error);
+      this.logger.error('Error setting up schema:', error as Error);
       throw error;
     }
   }
@@ -86,7 +93,7 @@ export class MyDatabaseClass {
       });
       return this.knex('comments').where({ id }).first();
     } catch (error) {
-      console.error('Error inserting comment:', error);
+      this.logger.error('Error inserting comment:', error as Error);
       throw error;
     }
   }
@@ -95,7 +102,7 @@ export class MyDatabaseClass {
     try {
       return this.knex('comments').where({ feature_id: featureId }).select('*');
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      this.logger.error('Error fetching comments:', error as Error);
       throw error;
     }
   }
@@ -109,7 +116,7 @@ export class MyDatabaseClass {
       });
       return this.knex('features').where({ id }).first();
     } catch (error) {
-      console.error('Error adding feature:', error);
+      this.logger.error('Error adding feature:', error as Error);
       throw error;
     }
   }
@@ -118,7 +125,7 @@ export class MyDatabaseClass {
     try {
       return this.knex('features').select('*');
     } catch (error) {
-      console.error('Error fetching all features:', error);
+      this.logger.error('Error fetching all features:', error as Error);
       throw error;
     }
   }
@@ -131,7 +138,7 @@ export class MyDatabaseClass {
       await this.knex('features').where({ id }).update({ status });
       return this.knex('features').where({ id }).first();
     } catch (error) {
-      console.error('Error updating feature status:', error);
+      this.logger.error('Error updating feature status:', error as Error);
       throw error;
     }
   }
@@ -161,7 +168,7 @@ export class MyDatabaseClass {
         throw error;
       }
     } catch (error) {
-      console.error('Error toggling vote:', error);
+      this.logger.error('Error toggling vote:', error as Error);
       throw error;
     }
   }
@@ -174,7 +181,7 @@ export class MyDatabaseClass {
         .first();
       return result ? result.votes : 0;
     } catch (error) {
-      console.error('Error getting vote count:', error);
+      this.logger.error('Error getting vote count:', error as Error);
       throw error;
     }
   }
@@ -190,7 +197,7 @@ export class MyDatabaseClass {
         return acc;
       }, {} as Record<string, number>);
     } catch (error) {
-      console.error('Error getting vote counts:', error);
+      this.logger.error('Error getting vote counts:', error as Error);
       throw error;
     }
   }
@@ -202,7 +209,7 @@ export class MyDatabaseClass {
         .first();
       return !!vote;
     } catch (error) {
-      console.error('Error checking if user has voted:', error);
+      this.logger.error('Error checking if user has voted:', error as Error);
       throw error;
     }
   }

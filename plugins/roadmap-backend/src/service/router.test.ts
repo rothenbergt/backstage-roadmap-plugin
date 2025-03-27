@@ -1,7 +1,7 @@
 import { mockServices } from '@backstage/backend-test-utils';
 import express from 'express';
 import request from 'supertest';
-import { MyDatabaseClass } from '../database/MyDatabaseClass';
+import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 import { createRouter } from './router';
 
 describe('createRouter', () => {
@@ -10,7 +10,7 @@ describe('createRouter', () => {
   beforeAll(async () => {
     const mockDb = {
       setupSchema: jest.fn().mockResolvedValue(undefined),
-    } as unknown as MyDatabaseClass;
+    } as unknown as RoadmapDatabaseClient;
 
     const router = await createRouter({
       logger: mockServices.logger.mock(),

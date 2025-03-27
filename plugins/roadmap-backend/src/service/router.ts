@@ -3,7 +3,7 @@ import { CacheService, LoggerService } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import express from 'express';
 import Router from 'express-promise-router';
-import { MyDatabaseClass } from '../database/MyDatabaseClass';
+import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 import {
   HttpAuthService,
   UserInfoService,
@@ -19,7 +19,7 @@ import { createPermissionCheckRouter } from './permissionCheckRouter';
 export interface RouterOptions {
   logger: LoggerService;
   config: Config;
-  db: MyDatabaseClass;
+  db: RoadmapDatabaseClient;
   httpAuth: HttpAuthService;
   userInfo: UserInfoService;
   permissions?: PermissionsService;

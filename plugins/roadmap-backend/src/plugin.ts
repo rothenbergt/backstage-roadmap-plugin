@@ -3,10 +3,13 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './service/router';
-import { MyDatabaseClass } from './database/MyDatabaseClass';
+import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
 
 /**
- * roadmapPlugin backend plugin
+ * Backend plugin for the Roadmap feature
+ *
+ * Provides endpoints for managing roadmap features, comments, and votes
+ * with integration to Backstage's permission framework
  *
  * @public
  */
@@ -35,7 +38,7 @@ export const roadmapPlugin = createBackendPlugin({
         cache,
       }) {
         const dbClient = await database.getClient();
-        const db = new MyDatabaseClass(dbClient);
+        const db = new RoadmapDatabaseClient(dbClient, logger);
 
         const permissionEnabled =
           config.getOptionalBoolean('permission.enabled') ?? false;
