@@ -5,10 +5,13 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { NotFoundError, ConflictError } from '@backstage/errors';
 
 /**
  * Interface for the Roadmap database operations
  */
+
+export { NotFoundError, ConflictError };
 export interface RoadmapDatabase {
   /**
    * Sets up the database schema
@@ -20,6 +23,8 @@ export interface RoadmapDatabase {
    *
    * @param comment - The comment to add
    * @returns The created comment
+   * @throws {NotFoundError} When the referenced feature does not exist
+   * @throws {ConflictError} When the database operation fails
    */
   addComment(comment: NewComment): Promise<Comment>;
 
@@ -28,6 +33,8 @@ export interface RoadmapDatabase {
    *
    * @param featureId - The ID of the feature
    * @returns Array of comments
+   * @throws {NotFoundError} When the feature does not exist
+   * @throws {ConflictError} When the database operation fails
    */
   getCommentsByFeatureId(featureId: string): Promise<Comment[]>;
 
@@ -36,6 +43,7 @@ export interface RoadmapDatabase {
    *
    * @param feature - The feature to add
    * @returns The created feature
+   * @throws {ConflictError} When the database operation fails
    */
   addFeature(feature: NewFeature & { author: string }): Promise<Feature>;
 
@@ -43,8 +51,19 @@ export interface RoadmapDatabase {
    * Get all features
    *
    * @returns Array of all features
+   * @throws {ConflictError} When the database operation fails
    */
   getAllFeatures(): Promise<Feature[]>;
+
+  /**
+   * Get a feature by its ID
+   *
+   * @param id - The ID of the feature
+   * @returns The feature
+   * @throws {NotFoundError} When the feature does not exist
+   * @throws {ConflictError} When the database operation fails
+   */
+  getFeatureById(id: string): Promise<Feature>;
 
   /**
    * Update the status of a feature
@@ -52,6 +71,8 @@ export interface RoadmapDatabase {
    * @param id - The ID of the feature
    * @param status - The new status
    * @returns The updated feature
+   * @throws {NotFoundError} When the feature does not exist
+   * @throws {ConflictError} When the database operation fails
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
 
@@ -61,6 +82,8 @@ export interface RoadmapDatabase {
    * @param featureId - The ID of the feature
    * @param voter - The user voting
    * @returns Boolean indicating if the vote was added (true) or removed (false)
+   * @throws {NotFoundError} When the feature does not exist
+   * @throws {ConflictError} When the database operation fails
    */
   toggleVote(featureId: string, voter: string): Promise<boolean>;
 
@@ -69,6 +92,8 @@ export interface RoadmapDatabase {
    *
    * @param featureId - The ID of the feature
    * @returns The number of votes
+   * @throws {NotFoundError} When the feature does not exist
+   * @throws {ConflictError} When the database operation fails
    */
   getVoteCount(featureId: string): Promise<number>;
 
@@ -77,6 +102,7 @@ export interface RoadmapDatabase {
    *
    * @param featureIds - Array of feature IDs
    * @returns Object mapping feature IDs to vote counts
+   * @throws {ConflictError} When the database operation fails
    */
   getVoteCounts(featureIds: string[]): Promise<Record<string, number>>;
 
@@ -86,6 +112,7 @@ export interface RoadmapDatabase {
    * @param featureId - The ID of the feature
    * @param voter - The user
    * @returns Boolean indicating if the user has voted
+   * @throws {ConflictError} When the database operation fails
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
 }

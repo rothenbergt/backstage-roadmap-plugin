@@ -5,6 +5,7 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { InputError } from '@backstage/errors';
 
 /**
  * Implementation of the Comment Service
@@ -15,23 +16,33 @@ export class CommentService implements CommentServiceInterface {
     private readonly logger: LoggerService,
   ) {}
 
-  async addComment(comment: NewComment): Promise<Comment> {
-    try {
-      return await this.db.addComment(comment);
-    } catch (error) {
-      this.logger.error(`Error adding comment: ${error}`);
-      throw error;
+  /**
+   * Validates a comment before adding it
+   */
+  private validateNewComment(comment: NewComment): void {
+    if (!comment.featureId) {
+      throw new InputError('Feature ID is required');
+    }
+
+    if (!comment.text || comment.text.trim() === '') {
+      throw new InputError('Comment text is required and cannot be empty');
+    }
+
+    if (comment.text.length > 1000) {
+      throw new InputError(
+        'Comment text cannot be longer than 1000 characters',
+      );
     }
   }
 
+  async addComment(comment: NewComment): Promise<Comment> {
+    this.logger.info(`Adding comment to feature ${comment.featureId}`);
+    this.validateNewComment(comment);
+    return this.db.addComment(comment);
+  }
+
   async getCommentsByFeatureId(featureId: string): Promise<Comment[]> {
-    try {
-      return await this.db.getCommentsByFeatureId(featureId);
-    } catch (error) {
-      this.logger.error(
-        `Error fetching comments for feature ${featureId}: ${error}`,
-      );
-      throw error;
-    }
+    this.logger.info(`Fetching comments for feature ${featureId}`);
+    return this.db.getCommentsByFeatureId(featureId);
   }
 }

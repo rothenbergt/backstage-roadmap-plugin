@@ -8,14 +8,13 @@ import { PermissionService } from '../services/PermissionService';
  * Router for permission-checking endpoints
  */
 export function permissionCheckRouter(options: RouterOptions): express.Router {
-  const { logger } = options;
   const router = Router();
 
   // Initialize service
   const permissionService = new PermissionService(options);
 
   // Check if the current user is an admin
-  router.get('/check-admin', async (req, res) => {
+  router.get('/check-admin', async (req, res, next) => {
     try {
       const username = await permissionService.getUsername(req);
       const isAdmin = await permissionService.checkPermission(
@@ -26,11 +25,7 @@ export function permissionCheckRouter(options: RouterOptions): express.Router {
 
       res.json({ isAdmin });
     } catch (error) {
-      logger.error(`Error checking admin permission: ${error}`);
-      res.status(401).json({
-        isAdmin: false,
-        error: (error as Error).message,
-      });
+      next(error);
     }
   });
 

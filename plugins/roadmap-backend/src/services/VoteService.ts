@@ -12,42 +12,25 @@ export class VoteService implements VoteServiceInterface {
   ) {}
 
   async toggleVote(featureId: string, voter: string): Promise<boolean> {
-    try {
-      return await this.db.toggleVote(featureId, voter);
-    } catch (error) {
-      this.logger.error(
-        `Error toggling vote for feature ${featureId}: ${error}`,
-      );
-      throw error;
-    }
+    this.logger.info(`Toggling vote for feature ${featureId} by ${voter}`);
+    return this.db.toggleVote(featureId, voter);
   }
 
   async getVoteCount(featureId: string): Promise<number> {
-    try {
-      return await this.db.getVoteCount(featureId);
-    } catch (error) {
-      this.logger.error(
-        `Error getting vote count for feature ${featureId}: ${error}`,
-      );
-      throw error;
-    }
+    this.logger.info(`Getting vote count for feature ${featureId}`);
+    return this.db.getVoteCount(featureId);
   }
 
   async getVoteCounts(featureIds: string[]): Promise<Record<string, number>> {
-    try {
-      return await this.db.getVoteCounts(featureIds);
-    } catch (error) {
-      this.logger.error(`Error getting vote counts: ${error}`);
-      throw error;
+    this.logger.info(`Getting vote counts for ${featureIds.length} features`);
+    if (featureIds.length === 0) {
+      return {};
     }
+    return this.db.getVoteCounts(featureIds);
   }
 
   async hasVoted(featureId: string, voter: string): Promise<boolean> {
-    try {
-      return await this.db.hasVoted(featureId, voter);
-    } catch (error) {
-      this.logger.error(`Error checking if user has voted: ${error}`);
-      throw error;
-    }
+    this.logger.info(`Checking if ${voter} has voted on feature ${featureId}`);
+    return this.db.hasVoted(featureId, voter);
   }
 }

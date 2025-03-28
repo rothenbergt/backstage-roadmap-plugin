@@ -8,6 +8,7 @@ import {
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { RoadmapDatabase } from './types';
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { NotFoundError, ConflictError } from '@backstage/errors';
 
 /**
  * Implementation of the RoadmapDatabase interface using Knex
@@ -80,53 +81,136 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
       }
     } catch (error) {
       this.logger.error('Error setting up schema:', error as Error);
-      throw error;
+      throw new ConflictError(
+        'Failed to set up database schema',
+        error as Error,
+      );
     }
   }
 
   async addComment(comment: NewComment): Promise<Comment> {
+    const trx = await this.knex.transaction();
     try {
-      const [id] = await this.knex('comments').insert({
+      // First check if the feature exists
+      const feature = await trx('features')
+        .where({ id: comment.featureId })
+        .first();
+
+      if (!feature) {
+        await trx.rollback();
+        throw new NotFoundError(
+          `Feature with id ${comment.featureId} not found`,
+        );
+      }
+
+      // Insert comment
+      const [id] = await trx('comments').insert({
         feature_id: comment.featureId,
         text: comment.text,
         author: comment.author,
       });
-      return this.knex('comments').where({ id }).first();
+
+      // Get the inserted comment
+      const newComment = await trx('comments').where({ id }).first();
+
+      await trx.commit();
+      return newComment;
     } catch (error) {
-      this.logger.error('Error inserting comment:', error as Error);
-      throw error;
+      await trx.rollback();
+      this.logger.error(`Error inserting comment: ${error}`);
+
+      // Rethrow NotFoundError as is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
+      throw new ConflictError('Failed to add comment', error as Error);
     }
   }
 
   async getCommentsByFeatureId(featureId: string): Promise<Comment[]> {
     try {
-      return this.knex('comments').where({ feature_id: featureId }).select('*');
+      // First check if the feature exists
+      const feature = await this.knex('features')
+        .where({ id: featureId })
+        .first();
+
+      if (!feature) {
+        throw new NotFoundError(`Feature with id ${featureId} not found`);
+      }
+
+      // Get comments ordered by creation date (newest first)
+      return this.knex('comments')
+        .where({ feature_id: featureId })
+        .orderBy('created_at', 'desc')
+        .select('*');
     } catch (error) {
-      this.logger.error('Error fetching comments:', error as Error);
-      throw error;
+      this.logger.error(
+        `Error fetching comments for feature ${featureId}: ${error}`,
+      );
+
+      // Rethrow NotFoundError as is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
+      throw new ConflictError(
+        `Failed to get comments for feature ${featureId}`,
+        error as Error,
+      );
     }
   }
 
   async addFeature(feature: NewFeature & { author: string }): Promise<Feature> {
+    const trx = await this.knex.transaction();
     try {
-      const [id] = await this.knex('features').insert({
+      const [id] = await trx('features').insert({
         ...feature,
         status: FeatureStatus.Suggested,
         votes: 0,
       });
-      return this.knex('features').where({ id }).first();
+
+      const newFeature = await trx('features').where({ id }).first();
+
+      await trx.commit();
+      return newFeature;
     } catch (error) {
-      this.logger.error('Error adding feature:', error as Error);
-      throw error;
+      await trx.rollback();
+      this.logger.error(`Error adding feature: ${error}`);
+      throw new ConflictError('Failed to add feature', error as Error);
     }
   }
 
   async getAllFeatures(): Promise<Feature[]> {
     try {
-      return this.knex('features').select('*');
+      return this.knex('features').orderBy('created_at', 'desc').select('*');
     } catch (error) {
-      this.logger.error('Error fetching all features:', error as Error);
-      throw error;
+      this.logger.error(`Error fetching all features: ${error}`);
+      throw new ConflictError('Failed to get all features', error as Error);
+    }
+  }
+
+  async getFeatureById(id: string): Promise<Feature> {
+    try {
+      const feature = await this.knex('features').where({ id }).first();
+
+      if (!feature) {
+        throw new NotFoundError(`Feature with id ${id} not found`);
+      }
+
+      return feature;
+    } catch (error) {
+      this.logger.error(`Error fetching feature ${id}: ${error}`);
+
+      // Rethrow NotFoundError as is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
+      throw new ConflictError(
+        `Failed to get feature with id ${id}`,
+        error as Error,
+      );
     }
   }
 
@@ -134,60 +218,98 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
     id: string,
     status: FeatureStatus,
   ): Promise<Feature> {
+    const trx = await this.knex.transaction();
     try {
-      await this.knex('features').where({ id }).update({ status });
-      return this.knex('features').where({ id }).first();
+      // First check if the feature exists
+      const feature = await trx('features').where({ id }).first();
+
+      if (!feature) {
+        await trx.rollback();
+        throw new NotFoundError(`Feature with id ${id} not found`);
+      }
+
+      // Update the status
+      await trx('features').where({ id }).update({
+        status,
+        updated_at: this.knex.fn.now(),
+      });
+
+      // Get the updated feature
+      const updatedFeature = await trx('features').where({ id }).first();
+
+      await trx.commit();
+      return updatedFeature;
     } catch (error) {
-      this.logger.error('Error updating feature status:', error as Error);
-      throw error;
+      await trx.rollback();
+      this.logger.error(`Error updating feature status: ${error}`);
+
+      // Rethrow NotFoundError as is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
+      throw new ConflictError(
+        `Failed to update status for feature ${id}`,
+        error as Error,
+      );
     }
   }
 
   async toggleVote(featureId: string, voter: string): Promise<boolean> {
+    const trx = await this.knex.transaction();
     try {
-      const trx = await this.knex.transaction();
+      // First check if the feature exists
+      const feature = await trx('features').where({ id: featureId }).first();
 
-      try {
-        const existingVote = await trx('votes')
-          .where({ feature_id: featureId, voter })
-          .first();
-
-        if (existingVote) {
-          await trx('votes').where({ feature_id: featureId, voter }).delete();
-          await trx('features').where({ id: featureId }).decrement('votes', 1);
-          await trx.commit();
-          return false;
-        } else {
-          await trx('votes').insert({ feature_id: featureId, voter });
-          await trx('features').where({ id: featureId }).increment('votes', 1);
-          await trx.commit();
-          return true;
-        }
-      } catch (error) {
+      if (!feature) {
         await trx.rollback();
-        throw error;
+        throw new NotFoundError(`Feature with id ${featureId} not found`);
+      }
+
+      const existingVote = await trx('votes')
+        .where({ feature_id: featureId, voter })
+        .first();
+
+      if (existingVote) {
+        // Remove the vote
+        await trx('votes').where({ feature_id: featureId, voter }).delete();
+        await trx('features').where({ id: featureId }).decrement('votes', 1);
+        await trx.commit();
+        return false;
+      } else {
+        // Add the vote
+        await trx('votes').insert({ feature_id: featureId, voter });
+        await trx('features').where({ id: featureId }).increment('votes', 1);
+        await trx.commit();
+        return true;
       }
     } catch (error) {
-      this.logger.error('Error toggling vote:', error as Error);
-      throw error;
+      await trx.rollback();
+      this.logger.error(`Error toggling vote: ${error}`);
+
+      // Rethrow NotFoundError as is
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
+      throw new ConflictError(
+        `Failed to toggle vote for feature ${featureId}`,
+        error as Error,
+      );
     }
   }
 
   async getVoteCount(featureId: string): Promise<number> {
-    try {
-      const result = await this.knex('features')
-        .where('id', featureId)
-        .select('votes')
-        .first();
-      return result ? result.votes : 0;
-    } catch (error) {
-      this.logger.error('Error getting vote count:', error as Error);
-      throw error;
-    }
+    const counts = await this.getVoteCounts([featureId]);
+    return counts[featureId] || 0;
   }
 
   async getVoteCounts(featureIds: string[]): Promise<Record<string, number>> {
     try {
+      if (featureIds.length === 0) {
+        return {};
+      }
+
       const results = await this.knex('features')
         .whereIn('id', featureIds)
         .select('id', 'votes');
@@ -197,8 +319,8 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         return acc;
       }, {} as Record<string, number>);
     } catch (error) {
-      this.logger.error('Error getting vote counts:', error as Error);
-      throw error;
+      this.logger.error(`Error getting vote counts: ${error}`);
+      throw new ConflictError('Failed to get vote counts', error as Error);
     }
   }
 
@@ -209,8 +331,11 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         .first();
       return !!vote;
     } catch (error) {
-      this.logger.error('Error checking if user has voted:', error as Error);
-      throw error;
+      this.logger.error(`Error checking if user has voted: ${error}`);
+      throw new ConflictError(
+        `Failed to check if user ${voter} has voted on feature ${featureId}`,
+        error as Error,
+      );
     }
   }
 }

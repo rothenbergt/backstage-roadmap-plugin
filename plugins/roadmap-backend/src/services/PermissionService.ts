@@ -3,7 +3,7 @@ import { PermissionServiceInterface } from './types';
 import { RouterOptions } from '../routes/router';
 import { roadmapAdminPermission } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { BasicPermission } from '@backstage/plugin-permission-common';
-import { NotAllowedError, NotFoundError } from '@backstage/errors';
+import { NotFoundError, NotAllowedError } from '@backstage/errors';
 import { getRoadmapBackendConfig } from '../config';
 import {
   AuthorizeResult,
@@ -25,7 +25,7 @@ export class PermissionService implements PermissionServiceInterface {
     const credentials = await httpAuth.credentials(req);
     if (!credentials) {
       logger.warn('Unauthorized access attempt');
-      throw new NotAllowedError('Unauthorized');
+      throw new NotAllowedError('Unauthorized access');
     }
     const user = await userInfo.getUserInfo(credentials);
     const username = user?.userEntityRef?.toString();
@@ -58,7 +58,7 @@ export class PermissionService implements PermissionServiceInterface {
     const credentials = await httpAuth.credentials(req);
     if (!credentials) {
       logger.warn(`Unauthorized access attempt by user ${username}`);
-      throw new NotAllowedError('Unauthorized');
+      throw new NotAllowedError('Unauthorized access');
     }
 
     let decision: DefinitivePolicyDecision = { result: AuthorizeResult.DENY };
@@ -81,7 +81,7 @@ export class PermissionService implements PermissionServiceInterface {
       return isAllowed;
     } catch (error) {
       logger.error(`Error while authorizing user ${username}`);
-      throw new Error('Permission check failed');
+      throw new NotAllowedError('Permission check failed');
     }
   }
 
