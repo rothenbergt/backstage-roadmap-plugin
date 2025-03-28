@@ -47,4 +47,4 @@ See individual package READMEs for more detailed information:
 
 ## Screenshots
 
-Check the main [README.md](../../README.md) for screenshots.
+Check the main [README.md](../README.md) for screenshots.
