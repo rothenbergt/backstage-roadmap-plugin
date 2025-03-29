@@ -117,19 +117,7 @@ export class RoadmapApiClient implements RoadmapApi {
       body: JSON.stringify({ featureId, text: comment }),
     });
 
-    const data = await this.handleResponse<{ result: any }>(
-      response,
-      'Failed to add comment',
-    );
-
-    // Map the response to the expected Comment type
-    return {
-      id: data.result.id,
-      featureId,
-      text: data.result.text,
-      author: data.result.author,
-      created_at: data.result.created_at,
-    } as Comment;
+    return this.handleResponse<Comment>(response, 'Failed to add comment');
   }
 
   async toggleVote(featureId: string): Promise<VoteResponse> {
@@ -156,12 +144,10 @@ export class RoadmapApiClient implements RoadmapApi {
       `${baseUrl}/votes/${featureId}/count`,
     );
 
-    const data = await this.handleResponse<{ count: number }>(
+    return this.handleResponse<number>(
       response,
       `Failed to get vote count for feature ${featureId}`,
     );
-
-    return data.count;
   }
 
   async getVoteCounts(featureIds: string[]): Promise<Record<string, number>> {
@@ -186,12 +172,10 @@ export class RoadmapApiClient implements RoadmapApi {
       `${baseUrl}/votes/${featureId}/user`,
     );
 
-    const data = await this.handleResponse<{ hasVoted: boolean }>(
+    return this.handleResponse<boolean>(
       response,
       `Failed to check if user voted on feature ${featureId}`,
     );
-
-    return data.hasVoted;
   }
 
   async checkAdminPermission(): Promise<boolean> {
@@ -200,11 +184,9 @@ export class RoadmapApiClient implements RoadmapApi {
       `${baseUrl}/permissions/check-admin`,
     );
 
-    const data = await this.handleResponse<{ isAdmin: boolean }>(
+    return this.handleResponse<boolean>(
       response,
       'Failed to check admin permission',
     );
-
-    return data.isAdmin;
   }
 }

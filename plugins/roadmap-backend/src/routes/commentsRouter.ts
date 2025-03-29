@@ -22,13 +22,13 @@ export function commentsRouter(options: RouterOptions): express.Router {
       const username = await permissionService.getUsername(req);
       const { featureId, text } = req.body;
 
-      const result = await commentService.addComment({
+      const comment = await commentService.addComment({
         featureId,
         text,
         author: username,
       });
 
-      res.status(201).json({ result });
+      res.status(201).json(comment);
     } catch (error) {
       next(error);
     }

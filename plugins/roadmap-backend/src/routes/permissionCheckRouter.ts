@@ -23,7 +23,7 @@ export function permissionCheckRouter(options: RouterOptions): express.Router {
         roadmapAdminPermission,
       );
 
-      res.json({ isAdmin });
+      res.json(isAdmin);
     } catch (error) {
       next(error);
     }

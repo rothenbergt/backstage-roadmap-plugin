@@ -30,7 +30,6 @@ export function votesRouter(options: RouterOptions): express.Router {
       const newVoteCount = await voteService.getVoteCount(featureId);
 
       res.status(200).json({
-        message: voteAdded ? 'Vote added' : 'Vote removed',
         voteAdded,
         voteCount: newVoteCount,
       });
@@ -49,7 +48,7 @@ export function votesRouter(options: RouterOptions): express.Router {
       }
 
       const count = await voteService.getVoteCount(featureId);
-      res.json({ count });
+      res.json(count);
     } catch (error) {
       next(error);
     }
@@ -62,7 +61,6 @@ export function votesRouter(options: RouterOptions): express.Router {
 
       // Handle empty parameter case gracefully
       if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
-        // Send empty object for empty input
         res.json({});
         return;
       }
@@ -70,7 +68,6 @@ export function votesRouter(options: RouterOptions): express.Router {
       const featureIds = idsParam.split(',');
 
       if (featureIds.length === 0) {
-        // Send empty object for empty array after splitting
         res.json({});
         return;
       }
@@ -94,7 +91,7 @@ export function votesRouter(options: RouterOptions): express.Router {
       const username = await permissionService.getUsername(req);
       const hasVoted = await voteService.hasVoted(featureId, username);
 
-      res.json({ hasVoted });
+      res.json(hasVoted);
     } catch (error) {
       next(error);
     }
