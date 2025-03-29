@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { roadmapApiRef } from '../api/roadmapApi';
+import { roadmapApiRef } from '../api';
 
 export const useFeatureVote = (featureId: string, initialVotes: number) => {
   const [voteCount, setVoteCount] = useState(initialVotes);

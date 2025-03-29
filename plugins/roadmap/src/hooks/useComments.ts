@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { roadmapApiRef } from '../api/roadmapApi';
+import { roadmapApiRef } from '../api';
 import { Comment } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { alertApiRef } from '@backstage/core-plugin-api';
 

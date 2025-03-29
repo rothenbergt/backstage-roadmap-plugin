@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { roadmapApiRef } from '../api/roadmapApi';
+import { roadmapApiRef } from '../api';
 
 export const useIsRoadmapAdmin = () => {
   const roadmapApi = useApi(roadmapApiRef);

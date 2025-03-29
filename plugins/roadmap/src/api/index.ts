@@ -1,1 +1,2 @@
-export * from './roadmapApi';
+export * from './roadmapClient';
+export * from './types';

@@ -7,7 +7,7 @@ import {
   identityApiRef,
 } from '@backstage/core-plugin-api';
 import { rootRouteRef } from './routes';
-import { roadmapApiRef, RoadmapApiClient } from './api/roadmapApi';
+import { roadmapApiRef, RoadmapApiClient } from './api';
 
 /**
  * The main Roadmap plugin.

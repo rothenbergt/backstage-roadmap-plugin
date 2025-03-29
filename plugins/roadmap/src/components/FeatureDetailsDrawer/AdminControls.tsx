@@ -8,7 +8,7 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import { useApi } from '@backstage/core-plugin-api';
-import { roadmapApiRef } from '../../api/roadmapApi';
+import { roadmapApiRef } from '../../api';
 import {
   Feature,
   FeatureStatus,
