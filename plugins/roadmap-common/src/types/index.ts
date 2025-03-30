@@ -12,6 +12,8 @@ export interface Feature {
   status: FeatureStatus;
   votes: number;
   author: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NewFeature {
@@ -21,10 +23,11 @@ export interface NewFeature {
 
 export interface Comment {
   id: string;
+  author: string;
   featureId: string;
   text: string;
   created_at: string;
-  author: string;
+  updated_at: string;
 }
 
 export interface NewComment {
