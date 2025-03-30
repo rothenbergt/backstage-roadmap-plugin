@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { roadmapApiRef } from '../api';
+import { alertApiRef } from '@backstage/core-plugin-api';
 
+/**
+ * Hook to check if the current user has roadmap admin permissions
+ * Uses the backend permission checking API
+ */
 export const useIsRoadmapAdmin = () => {
   const roadmapApi = useApi(roadmapApiRef);
+  const alertApi = useApi(alertApiRef);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | undefined>();
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -15,17 +21,24 @@ export const useIsRoadmapAdmin = () => {
       try {
         setLoading(true);
         const adminStatus = await roadmapApi.checkAdminPermission();
+
         if (isMounted) {
           setIsAdmin(adminStatus);
-          setError(undefined);
+          setError(null);
         }
       } catch (err) {
-        console.error('Failed to check admin status', err);
         if (isMounted) {
-          setError(
-            err instanceof Error ? err : new Error('An unknown error occurred'),
-          );
+          const errorObj =
+            err instanceof Error ? err : new Error('Unknown error');
+          setError(errorObj);
           setIsAdmin(false);
+
+          // Use alertApi instead of console.error
+          alertApi.post({
+            message: `Failed to check admin permission: ${errorObj.message}`,
+            severity: 'warning',
+            display: 'transient',
+          });
         }
       } finally {
         if (isMounted) {
@@ -39,7 +52,7 @@ export const useIsRoadmapAdmin = () => {
     return () => {
       isMounted = false;
     };
-  }, [roadmapApi]);
+  }, [roadmapApi, alertApi]);
 
   return { loading, error, isAdmin };
 };

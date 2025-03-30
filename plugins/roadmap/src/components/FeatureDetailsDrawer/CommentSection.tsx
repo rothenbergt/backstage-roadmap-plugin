@@ -1,17 +1,15 @@
 import React from 'react';
-import {
-  Typography,
-  TextField,
-  Button,
-  CircularProgress,
-  Alert,
-  List,
-  ListItem,
-  ListItemText,
-  Avatar,
-  Paper,
-  Box,
-} from '@mui/material';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import Avatar from '@mui/material/Avatar';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
 import { Comment } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { TextWithLinks } from '../common/TextWithLinks';
 import { SafeEntityRefLink } from '../common/SafeEntityRefLink';
@@ -61,10 +59,10 @@ const CommentList: React.FC<{ comments: Comment[] }> = ({ comments }) => {
                 >
                   <SafeEntityRefLink
                     entityRef={comment.author || 'user:default/guest'}
-                    hideIcon={true}
+                    hideIcon
                   />
                   <Typography variant="caption" color="text.secondary">
-                    {formatDistanceToNow(new Date(comment.created_at + 'Z'), {
+                    {formatDistanceToNow(new Date(`${comment.created_at}Z`), {
                       addSuffix: true,
                     })}
                   </Typography>
@@ -142,19 +140,25 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         <Typography variant="h6">Comments ({comments.length})</Typography>
       </Box>
       <Box sx={{ p: 2 }}>
-        {isLoading && comments.length === 0 ? (
-          <CircularProgress />
-        ) : error ? (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error.message}
-          </Alert>
-        ) : comments.length === 0 ? (
-          <Typography color="text.secondary">
-            No comments yet. Be the first to comment!
-          </Typography>
-        ) : (
-          <CommentList comments={comments} />
-        )}
+        {(() => {
+          if (isLoading && comments.length === 0) {
+            return <CircularProgress />;
+          }
+          if (error) {
+            return (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error.message}
+              </Alert>
+            );
+          }
+          return comments.length === 0 ? (
+            <Typography color="text.secondary">
+              No comments yet. Be the first to comment!
+            </Typography>
+          ) : (
+            <CommentList comments={comments} />
+          );
+        })()}
         <CommentForm
           newComment={newComment}
           setNewComment={setNewComment}

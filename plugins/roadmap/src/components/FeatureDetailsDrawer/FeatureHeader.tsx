@@ -1,5 +1,8 @@
 import React from 'react';
-import { Typography, Box, IconButton, Paper } from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Paper from '@mui/material/Paper';
 import CloseIcon from '@mui/icons-material/Close';
 import { Feature } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { TextWithLinks } from '../common/TextWithLinks';

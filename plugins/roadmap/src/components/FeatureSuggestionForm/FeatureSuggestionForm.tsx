@@ -1,14 +1,12 @@
 import React from 'react';
-import {
-  TextField,
-  Button,
-  Box,
-  Typography,
-  IconButton,
-  Divider,
-  Paper,
-  Drawer,
-} from '@mui/material';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import Drawer from '@mui/material/Drawer';
 import CloseIcon from '@mui/icons-material/Close';
 import { useSuggestions } from '../../hooks/useSuggestions';
 

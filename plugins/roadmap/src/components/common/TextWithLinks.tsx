@@ -1,5 +1,7 @@
 import React from 'react';
-import { Link, Typography, TypographyProps } from '@mui/material';
+import Link from '@mui/material/Link';
+import Typography from '@mui/material/Typography';
+import type { TypographyProps } from '@mui/material/Typography';
 import { parseUrls } from '../../utils/parseUrls';
 
 export interface TextWithLinksProps extends TypographyProps {

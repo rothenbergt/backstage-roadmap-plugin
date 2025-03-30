@@ -1,14 +1,11 @@
 import React from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  IconButton,
-  Box,
-  Grid,
-  useTheme,
-} from '@mui/material';
-import ArrowUpward from '@material-ui/icons/ArrowUpward';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
+import ArrowUpward from '@mui/icons-material/ArrowUpward';
 import { Feature } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { useFeatureVote } from '../../hooks/useFeatureVote';
 import { TextWithLinks } from '../common/TextWithLinks';
@@ -25,7 +22,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   onClick,
 }) => {
   const theme = useTheme();
-  const { voteCount, hasVoted, toggleVote } = useFeatureVote(
+  const { voteCount, hasVoted, toggleVote, isLoading } = useFeatureVote(
     feature.id,
     feature.votes,
   );
@@ -37,7 +34,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
 
   const truncateDescription = (text: string) => {
     if (text.length <= MAX_DESCRIPTION_LENGTH) return text;
-    return text.slice(0, MAX_DESCRIPTION_LENGTH).trim() + '...';
+    return `${text.slice(0, MAX_DESCRIPTION_LENGTH).trim()}...`;
   };
 
   return (
@@ -58,20 +55,23 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
       <CardContent
         sx={{ padding: 1.5, '&:last-child': { paddingBottom: 1.5 } }}
       >
-        <Grid container spacing={1} alignItems="center">
-          <Grid item>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box>
             <Box
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              minWidth="40px"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '40px',
+              }}
             >
               <IconButton
                 onClick={onVote}
                 color={hasVoted ? 'primary' : 'default'}
                 size="small"
                 sx={{ padding: 0.5 }}
+                disabled={isLoading}
               >
                 <ArrowUpward fontSize="small" />
               </IconButton>
@@ -79,18 +79,18 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
                 {voteCount}
               </Typography>
             </Box>
-          </Grid>
-          <Grid item xs>
+          </Box>
+          <Box sx={{ flexGrow: 1, ml: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
               {feature.title}
             </Typography>
             <TextWithLinks
               text={truncateDescription(feature.description)}
               variant="body2"
-              style={{ color: theme.palette.text.secondary, lineHeight: 1.3 }}
+              sx={{ color: theme.palette.text.secondary, lineHeight: 1.3 }}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );

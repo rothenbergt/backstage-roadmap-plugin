@@ -1,14 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Grid,
-  Button,
-  Box,
-  useTheme,
-  useMediaQuery,
-  Typography,
-  Paper,
-} from '@mui/material';
-import { Add as AddIcon } from '@material-ui/icons';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import { useTheme } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import AddIcon from '@mui/icons-material/Add';
 import { useRoadmapData } from '../../hooks/useRoadmapData';
 import { FeatureColumn } from './FeatureColumn';
 import { FeatureSuggestionForm } from '../FeatureSuggestionForm';
@@ -43,8 +39,6 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
 
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.between('md', 'lg'));
 
   const roadmapColumns = getRoadmapColumnsWithStyles(
     customColumns || defaultRoadmapColumns,
@@ -80,16 +74,6 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
     return <ResponseErrorPanel error={error} />;
   }
 
-  const getGridItemProps = () => {
-    if (isSmallScreen) {
-      return { xs: 12 };
-    } else if (isMediumScreen) {
-      return { xs: 6 };
-    } else {
-      return { xs: 12 / 4 };
-    }
-  };
-
   return (
     <Page themeId="tool">
       <Header title="Public Roadmap" subtitle="Shape the Future with Us" />
@@ -105,14 +89,33 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
           </Button>
         </ContentHeader>
 
-        <Grid container spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            pb: 2,
+            overflowX: 'auto',
+          }}
+        >
           {roadmapColumns.map(column => {
             const columnData = columns.find(c => c.title === column.title) || {
               features: [],
             };
             const IconComponent = column.icon;
             return (
-              <Grid item key={column.id} {...getGridItemProps()}>
+              <Box
+                key={column.id}
+                sx={{
+                  width: {
+                    xs: '100%',
+                    sm: 'calc(50% - 16px)',
+                    md: 'calc(33.333% - 16px)',
+                    lg: 'calc(25% - 16px)',
+                  },
+                  minWidth: '250px',
+                }}
+              >
                 <Box sx={{ px: 2, pb: 2 }}>
                   <Paper
                     elevation={2}
@@ -147,10 +150,10 @@ export const RoadmapDashboard = (props: RoadmapDashboardProps): JSX.Element => {
                     />
                   </Box>
                 </Box>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </Box>
       </Content>
 
       <FeatureSuggestionForm

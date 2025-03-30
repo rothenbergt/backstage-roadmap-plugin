@@ -8,10 +8,9 @@ interface SafeEntityRefLinkProps {
   hideIcon?: boolean;
 }
 
-// FallbackLink component to use when EntityRefLink is unavailable
+// Separate fallback component that doesn't use catalogApiRef
 const FallbackLink: React.FC<SafeEntityRefLinkProps> = ({ entityRef }) => {
-  const [_, userRef] = entityRef.split('/');
-  return <span>{userRef || entityRef}</span>;
+  return <span>{entityRef.split('/').pop()}</span>;
 };
 
 // This SafeEntityRefLink component is designed to be used in place of EntityRefLink
@@ -19,19 +18,16 @@ const FallbackLink: React.FC<SafeEntityRefLinkProps> = ({ entityRef }) => {
 // where the full Backstage catalog might not be available, such as during isolated plugin development and testing
 // TODO this can be removed once I integrate the catalog API into the Isolated Dev Environment
 export const SafeEntityRefLink: React.FC<SafeEntityRefLinkProps> = props => {
-  // Check if the Catalog API is available
-  const isCatalogAvailable = (() => {
-    try {
-      useApi(catalogApiRef);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  })();
+  let isCatalogAvailable = true;
+  try {
+    // This actually doesn't use the API, just checks if we can access it
+    useApi(catalogApiRef);
+  } catch (e) {
+    isCatalogAvailable = false;
+  }
 
   if (isCatalogAvailable) {
     return <EntityRefLink {...props} />;
-  } else {
-    return <FallbackLink {...props} />;
   }
+  return <FallbackLink {...props} />;
 };

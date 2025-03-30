@@ -235,13 +235,13 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         await trx('features').where({ id: featureId }).decrement('votes', 1);
         await trx.commit();
         return false;
-      } else {
-        // Add the vote
-        await trx('votes').insert({ feature_id: featureId, voter });
-        await trx('features').where({ id: featureId }).increment('votes', 1);
-        await trx.commit();
-        return true;
       }
+
+      // Add the vote
+      await trx('votes').insert({ feature_id: featureId, voter });
+      await trx('features').where({ id: featureId }).increment('votes', 1);
+      await trx.commit();
+      return true;
     } catch (error) {
       await trx.rollback();
       this.logger.error(`Error toggling vote: ${error}`);

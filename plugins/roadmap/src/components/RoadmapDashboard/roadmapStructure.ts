@@ -1,17 +1,22 @@
-import {
-  EmojiObjects as LightbulbIcon,
-  Schedule as ScheduleIcon,
-  Block as BlockIcon,
-  CheckCircle as CheckCircleIcon,
-  SvgIconComponent,
-} from '@mui/icons-material';
+import LightbulbIcon from '@mui/icons-material/EmojiObjects';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import type { SvgIconProps } from '@mui/material/SvgIcon';
+import type { ComponentType } from 'react';
 
 export interface RoadmapColumn {
   id: string;
   title: string;
-  icon: SvgIconComponent;
+  icon: ComponentType<SvgIconProps>;
   baseColor: string;
 }
+
+export const generateColumnStyle = (baseColor: string) => ({
+  backgroundColor: `${baseColor}22`,
+  borderTop: `3px solid ${baseColor}`,
+  color: baseColor,
+});
 
 export const defaultRoadmapColumns: RoadmapColumn[] = [
   {
@@ -51,9 +56,3 @@ export const getRoadmapColumnsById = (columns: RoadmapColumn[]) =>
     acc[column.id] = column;
     return acc;
   }, {} as Record<string, RoadmapColumn>);
-
-export const generateColumnStyle = (baseColor: string) => ({
-  backgroundColor: `${baseColor}22`,
-  borderTop: `3px solid ${baseColor}`,
-  color: baseColor,
-});

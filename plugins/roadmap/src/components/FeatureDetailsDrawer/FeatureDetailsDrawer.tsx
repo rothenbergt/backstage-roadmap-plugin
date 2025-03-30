@@ -1,5 +1,7 @@
 import React from 'react';
-import { Drawer, Box, CircularProgress } from '@mui/material';
+import Drawer from '@mui/material/Drawer';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import { Feature } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { useComments } from '../../hooks/useComments';
 import { FeatureHeader } from './FeatureHeader';
@@ -48,15 +50,23 @@ export const FeatureDetailsDrawer: React.FC<FeatureDetailsDrawerProps> = ({
           isLoading={commentsLoading}
           error={commentsError}
         />
-        {adminLoading ? (
-          <CircularProgress />
-        ) : adminError ? (
-          <div>Error checking admin status: {adminError.message}</div>
-        ) : isAdmin ? (
-          <AdminControls feature={feature} onStatusChange={onStatusChange} />
-        ) : (
-          <div>You do not have admin privileges.</div>
-        )}
+        {(() => {
+          if (adminLoading) {
+            return <CircularProgress />;
+          }
+          if (adminError) {
+            return <div>Error checking admin status: {adminError.message}</div>;
+          }
+          if (isAdmin) {
+            return (
+              <AdminControls
+                feature={feature}
+                onStatusChange={onStatusChange}
+              />
+            );
+          }
+          return <div>You do not have admin privileges.</div>;
+        })()}
       </Box>
     </Drawer>
   );

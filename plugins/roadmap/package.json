@@ -33,11 +33,16 @@
   "dependencies": {
     "@backstage/core-components": "^0.17.0",
     "@backstage/core-plugin-api": "^1.10.5",
+    "@backstage/errors": "^1.2.7",
+    "@backstage/plugin-catalog-react": "^1.16.0",
     "@backstage/theme": "^0.6.4",
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.9.1",
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@mui/icons-material": "^6.1.3",
+    "@mui/material": "^5.15.17",
+    "@rothenbergt/backstage-plugin-roadmap-common": "workspace:^",
+    "date-fns": "^4.1.0",
     "react-use": "^17.2.4"
   },
   "peerDependencies": {

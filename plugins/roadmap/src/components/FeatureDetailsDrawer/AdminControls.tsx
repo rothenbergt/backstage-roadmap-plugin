@@ -1,12 +1,10 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  FormControl,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import { useApi } from '@backstage/core-plugin-api';
 import { roadmapApiRef } from '../../api';
 import {
