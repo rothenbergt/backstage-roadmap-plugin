@@ -36,7 +36,7 @@ export interface RouterOptions {
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, config, db } = options;
+  const { logger, config } = options;
 
   const router = Router();
   router.use(express.json());
@@ -53,9 +53,6 @@ export async function createRouter(
   });
 
   router.use(permissionIntegrationRouter);
-
-  // Ensure database schema is ready
-  await db.setupSchema();
 
   // Register sub-routers
   router.use('/comments', commentsRouter(options));

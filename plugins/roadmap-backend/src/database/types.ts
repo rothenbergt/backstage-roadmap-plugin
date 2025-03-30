@@ -14,11 +14,6 @@ import { NotFoundError, ConflictError } from '@backstage/errors';
 export { NotFoundError, ConflictError };
 export interface RoadmapDatabase {
   /**
-   * Sets up the database schema
-   */
-  setupSchema(): Promise<void>;
-
-  /**
    * Add a comment to a feature
    *
    * @param comment - The comment to add

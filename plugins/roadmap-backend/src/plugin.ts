@@ -34,8 +34,10 @@ export const roadmapPlugin = createBackendPlugin({
         permissions,
         cache,
       }) {
-        const dbClient = await database.getClient();
-        const db = new RoadmapDatabaseClient(dbClient, logger);
+        const db = await RoadmapDatabaseClient.create({
+          database,
+          logger,
+        });
 
         const permissionEnabled =
           config.getOptionalBoolean('permission.enabled') ?? false;

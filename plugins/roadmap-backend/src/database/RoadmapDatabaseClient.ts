@@ -7,85 +7,44 @@ import {
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { RoadmapDatabase } from './types';
-import { LoggerService } from '@backstage/backend-plugin-api';
+import { LoggerService, DatabaseService } from '@backstage/backend-plugin-api';
 import { NotFoundError, ConflictError } from '@backstage/errors';
+import { resolvePackagePath } from '@backstage/backend-plugin-api';
+
+const migrationsDir = resolvePackagePath(
+  '@rothenbergt/backstage-plugin-roadmap-backend',
+  'migrations',
+);
 
 /**
  * Implementation of the RoadmapDatabase interface using Knex
  */
 export class RoadmapDatabaseClient implements RoadmapDatabase {
+  static async create(options: {
+    database: DatabaseService;
+    logger: LoggerService;
+  }): Promise<RoadmapDatabaseClient> {
+    const { database, logger } = options;
+    logger.info('Creating database for roadmap plugin');
+
+    const client = await database.getClient();
+
+    if (!database.migrations?.skip) {
+      logger.info('Running migrations for roadmap plugin');
+      await client.migrate.latest({
+        directory: migrationsDir,
+      });
+    }
+
+    return new RoadmapDatabaseClient(client, logger);
+  }
+
   private readonly knex: Knex;
   private readonly logger: LoggerService;
 
   constructor(knexInstance: Knex, logger: LoggerService) {
     this.knex = knexInstance;
     this.logger = logger;
-  }
-
-  private get validStatuses(): string[] {
-    return Object.values(FeatureStatus);
-  }
-
-  async setupSchema(): Promise<void> {
-    try {
-      const hasFeatures = await this.knex.schema.hasTable('features');
-      const hasComments = await this.knex.schema.hasTable('comments');
-      const hasVotes = await this.knex.schema.hasTable('votes');
-
-      if (!hasFeatures) {
-        await this.knex.schema.createTable('features', table => {
-          table.increments('id').primary();
-          table.string('title').notNullable();
-          table.text('description').notNullable();
-          table
-            .enum(
-              'status',
-              this.validStatuses.map(status => status.replace("'", "''")),
-            )
-            .notNullable()
-            .defaultTo(FeatureStatus.Suggested);
-          table.integer('votes').notNullable().defaultTo(0);
-          table.string('author').notNullable();
-          table.timestamps(true, true);
-        });
-      }
-
-      if (!hasComments) {
-        await this.knex.schema.createTable('comments', table => {
-          table.increments('id').primary();
-          table.integer('feature_id').unsigned().notNullable();
-          table.text('text').notNullable();
-          table.string('author').notNullable();
-          table.timestamps(true, true);
-          table
-            .foreign('feature_id')
-            .references('id')
-            .inTable('features')
-            .onDelete('CASCADE');
-        });
-      }
-
-      if (!hasVotes) {
-        await this.knex.schema.createTable('votes', table => {
-          table.increments('id').primary();
-          table.integer('feature_id').unsigned().notNullable();
-          table.string('voter').notNullable();
-          table.timestamps(true, true);
-          table
-            .foreign('feature_id')
-            .references('id')
-            .inTable('features')
-            .onDelete('CASCADE');
-          table.unique(['feature_id', 'voter']);
-        });
-      }
-    } catch (error) {
-      this.logger.error('Error setting up schema:', error as Error);
-      throw new ConflictError(
-        'Failed to set up database schema',
-        error as Error,
-      );
-    }
   }
 
   async addComment(comment: NewComment): Promise<Comment> {
