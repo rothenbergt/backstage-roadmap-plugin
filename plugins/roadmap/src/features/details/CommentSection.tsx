@@ -13,8 +13,8 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Progress } from '@backstage/core-components';
-import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
+import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 import SendIcon from '@material-ui/icons/Send';
 
 const useStyles = makeStyles(theme => ({
@@ -201,11 +201,14 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
                   <Avatar className={classes.authorAvatar}>{getInitials(comment.author.split('/').pop() || comment.author)}</Avatar>
                   <Box>
                     <Typography variant="subtitle2">
-                      {stringifyEntityRef({
-                        kind: comment.author.split(':')[0],
-                        namespace: comment.author.includes('/') ? comment.author.split('/')[0].split(':')[1] : 'default',
-                        name: comment.author.includes('/') ? comment.author.split('/')[1] : comment.author.split(':')[1],
-                      })}
+                      <EntityDisplayName 
+                        entityRef={{
+                          kind: comment.author.split(':')[0],
+                          namespace: comment.author.includes('/') ? comment.author.split('/')[0].split(':')[1] : 'default',
+                          name: comment.author.includes('/') ? comment.author.split('/')[1] : comment.author.split(':')[1],
+                        }}
+                        defaultKind="user"
+                      />
                       <Typography component="span" variant="caption" className={classes.commentTimestamp}>
                         {formatDate(comment.created_at)}
                       </Typography>

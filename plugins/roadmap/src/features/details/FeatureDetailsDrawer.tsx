@@ -19,8 +19,8 @@ import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
+import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 
 const useStyles = makeStyles(theme => ({
   drawer: {
@@ -207,11 +207,14 @@ export const FeatureDetailsDrawer = ({
                   Suggested by
                 </Typography>
                 <Typography variant="body2" className={classes.metaValue}>
-                  {stringifyEntityRef({
-                    kind: feature.author.split(':')[0],
-                    namespace: feature.author.includes('/') ? feature.author.split('/')[0].split(':')[1] : 'default',
-                    name: feature.author.includes('/') ? feature.author.split('/')[1] : feature.author.split(':')[1],
-                  })}
+                  <EntityDisplayName 
+                    entityRef={{
+                      kind: feature.author.split(':')[0],
+                      namespace: feature.author.includes('/') ? feature.author.split('/')[0].split(':')[1] : 'default',
+                      name: feature.author.includes('/') ? feature.author.split('/')[1] : feature.author.split(':')[1],
+                    }}
+                    defaultKind="user"
+                  />
                 </Typography>
               </div>
             </Grid>
