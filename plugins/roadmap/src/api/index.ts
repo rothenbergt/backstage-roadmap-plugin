@@ -1,2 +1,2 @@
-export * from './roadmapClient';
-export * from './types';
+export { roadmapApiRef, RoadmapApiClient } from './RoadmapApiClient';
+export type { RoadmapApi } from './RoadmapApiClient';

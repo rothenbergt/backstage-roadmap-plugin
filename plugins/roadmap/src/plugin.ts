@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   createPlugin,
   createRoutableExtension,
@@ -8,9 +9,35 @@ import {
 } from '@backstage/core-plugin-api';
 import { rootRouteRef } from './routes';
 import { roadmapApiRef, RoadmapApiClient } from './api';
+import { QueryClient } from 'react-query';
+import { QueryClientProvider } from 'react-query';
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      keepPreviousData: true,
+      refetchOnWindowFocus: false,
+      retry: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
+
+// Create a wrapped version of the roadmap component that includes the QueryClientProvider
+const WrappedRoadmapComponent = (props: any) => {
+  // Import RoadmapBoard component directly without using React.lazy
+  const { RoadmapBoard } = require('./features/board/RoadmapBoard');
+
+  return React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    React.createElement(RoadmapBoard, props)
+  );
+};
 
 /**
- * The main Roadmap plugin.
+ * The Roadmap plugin provides a public roadmap of features with voting and commenting
  */
 export const roadmapPlugin = createPlugin({
   id: 'roadmap',
@@ -29,13 +56,12 @@ export const roadmapPlugin = createPlugin({
 });
 
 /**
- * The main page component for the Roadmap plugin.
+ * A component to display the public roadmap
  */
 export const RoadmapPage = roadmapPlugin.provide(
   createRoutableExtension({
     name: 'RoadmapPage',
-    component: () =>
-      import('./components/RoadmapDashboard').then(m => m.RoadmapDashboard),
+    component: () => Promise.resolve(WrappedRoadmapComponent),
     mountPoint: rootRouteRef,
-  }),
+  })
 );

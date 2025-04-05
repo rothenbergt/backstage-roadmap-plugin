@@ -1,8 +1,9 @@
 export enum FeatureStatus {
   Suggested = 'Suggested',
   Planned = 'Planned',
-  WontDo = "Won't Do",
-  Released = 'Released',
+  InProgress = 'In Progress',
+  Completed = 'Completed',
+  Declined = 'Declined',
 }
 
 export interface Feature {
