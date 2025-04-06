@@ -104,7 +104,11 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
   const classes = useStyles();
   const alertApi = useApi(alertApiRef);
   const { data: comments, isLoading, error } = useComments(featureId);
-  const { mutate: addComment, isLoading: isSubmitting, error: submitError } = useAddComment(featureId);
+  const {
+    mutate: addComment,
+    isLoading: isSubmitting,
+    error: submitError,
+  } = useAddComment(featureId);
   const [commentText, setCommentText] = useState('');
   const [textError, setTextError] = useState('');
   const maxCommentLength = 1000;
@@ -133,7 +137,7 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
     const newText = event.target.value;
     if (newText.length <= maxCommentLength) {
       setCommentText(newText);
-      
+
       // Clear error when typing
       if (textError) {
         setTextError('');
@@ -146,22 +150,24 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
       setTextError('Comment cannot be empty');
       return false;
     }
-    
+
     if (commentText.length > maxCommentLength) {
-      setTextError(`Comment is too long (maximum ${maxCommentLength} characters)`);
+      setTextError(
+        `Comment is too long (maximum ${maxCommentLength} characters)`,
+      );
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!validateComment()) {
       return;
     }
-    
+
     addComment(commentText, {
       onSuccess: () => {
         alertApi.post({
@@ -190,40 +196,58 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
     if (isLoading) {
       return <Progress />;
     }
-    
+
     if (comments?.length) {
       return (
         <List className={classes.commentList}>
           {comments.map(comment => (
-            <Paper key={comment.id} className={classes.commentItem} variant="outlined">
+            <Paper
+              key={comment.id}
+              className={classes.commentItem}
+              variant="outlined"
+            >
               <Box className={classes.commentHeader}>
                 <Box className={classes.commentAuthor}>
-                  <Avatar className={classes.authorAvatar}>{getInitials(comment.author.split('/').pop() || comment.author)}</Avatar>
+                  <Avatar className={classes.authorAvatar}>
+                    {getInitials(
+                      comment.author.split('/').pop() || comment.author,
+                    )}
+                  </Avatar>
                   <Box>
                     <Typography variant="subtitle2">
-                      <EntityDisplayName 
+                      <EntityDisplayName
                         entityRef={{
                           kind: comment.author.split(':')[0],
-                          namespace: comment.author.includes('/') ? comment.author.split('/')[0].split(':')[1] : 'default',
-                          name: comment.author.includes('/') ? comment.author.split('/')[1] : comment.author.split(':')[1],
+                          namespace: comment.author.includes('/')
+                            ? comment.author.split('/')[0].split(':')[1]
+                            : 'default',
+                          name: comment.author.includes('/')
+                            ? comment.author.split('/')[1]
+                            : comment.author.split(':')[1],
                         }}
                         defaultKind="user"
                       />
-                      <Typography component="span" variant="caption" className={classes.commentTimestamp}>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        className={classes.commentTimestamp}
+                      >
                         {formatDate(comment.created_at)}
                       </Typography>
                     </Typography>
                   </Box>
                 </Box>
               </Box>
-              
-              <Typography variant="body2" className={classes.commentText}>{comment.text}</Typography>
+
+              <Typography variant="body2" className={classes.commentText}>
+                {comment.text}
+              </Typography>
             </Paper>
           ))}
         </List>
       );
     }
-    
+
     return (
       <Paper className={classes.noComments} variant="outlined">
         <Typography variant="body2">
@@ -244,7 +268,11 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
         ) : null}
       </Box>
 
-      <Box component="form" onSubmit={handleSubmit} className={classes.commentForm}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        className={classes.commentForm}
+      >
         <TextField
           label="Add a comment"
           variant="outlined"
@@ -261,14 +289,16 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
         <span className={classes.characterCounter}>
           {commentText.length}/{maxCommentLength}
         </span>
-        
+
         <Box className={classes.commentActions}>
           <Button
             color="primary"
             variant="contained"
             disabled={isSubmitting || !commentText.trim()}
             type="submit"
-            endIcon={isSubmitting ? <CircularProgress size={16} /> : <SendIcon />}
+            endIcon={
+              isSubmitting ? <CircularProgress size={16} /> : <SendIcon />
+            }
           >
             {isSubmitting ? 'Posting...' : 'Post Comment'}
           </Button>

@@ -7,13 +7,9 @@ import { useQuery } from 'react-query';
  */
 export const useAdminStatus = () => {
   const api = useApi(roadmapApiRef);
-  
-  return useQuery(
-    ['roadmap', 'isAdmin'],
-    () => api.isRoadmapAdmin(),
-    {
-      // Cache admin status for a while
-      staleTime: 1000 * 60 * 30, // 30 minutes
-    }
-  );
+
+  return useQuery(['roadmap', 'isAdmin'], () => api.isRoadmapAdmin(), {
+    // Cache admin status for a while
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
 };

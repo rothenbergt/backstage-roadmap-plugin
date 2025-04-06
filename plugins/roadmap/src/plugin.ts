@@ -32,7 +32,7 @@ const WrappedRoadmapComponent = (props: any) => {
   return React.createElement(
     QueryClientProvider,
     { client: queryClient },
-    React.createElement(RoadmapBoard, props)
+    React.createElement(RoadmapBoard, props),
   );
 };
 
@@ -63,5 +63,5 @@ export const RoadmapPage = roadmapPlugin.provide(
     name: 'RoadmapPage',
     component: () => Promise.resolve(WrappedRoadmapComponent),
     mountPoint: rootRouteRef,
-  })
+  }),
 );

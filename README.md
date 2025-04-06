@@ -30,8 +30,6 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 
 ## 🛠️ Installation
 
-🚀 **Note:** This plugin is still in active development and is not yet on NPM
-
 1. Install the plugin in your Backstage instance:
 
    ```

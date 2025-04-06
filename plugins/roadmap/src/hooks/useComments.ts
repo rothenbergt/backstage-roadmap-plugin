@@ -8,7 +8,7 @@ import { Comment } from '@rothenbergt/backstage-plugin-roadmap-common';
  */
 export const useComments = (featureId: string) => {
   const api = useApi(roadmapApiRef);
-  
+
   return useQuery(
     ['roadmap', 'comments', featureId],
     () => api.getCommentsByFeatureId(featureId),
@@ -16,7 +16,7 @@ export const useComments = (featureId: string) => {
       enabled: Boolean(featureId),
       // Comments don't change that often, so we can cache them for a while
       staleTime: 1000 * 60 * 5, // 5 minutes
-    }
+    },
   );
 };
 
@@ -26,17 +26,14 @@ export const useComments = (featureId: string) => {
 export const useAddComment = (featureId: string) => {
   const api = useApi(roadmapApiRef);
   const queryClient = useQueryClient();
-  
-  return useMutation(
-    (text: string) => api.addComment({ featureId, text }),
-    {
-      onSuccess: (newComment) => {
-        // Add the new comment to the cache
-        queryClient.setQueryData<Comment[]>(
-          ['roadmap', 'comments', featureId],
-          (oldComments) => [...(oldComments || []), newComment]
-        );
-      },
-    }
-  );
+
+  return useMutation((text: string) => api.addComment({ featureId, text }), {
+    onSuccess: newComment => {
+      // Add the new comment to the cache
+      queryClient.setQueryData<Comment[]>(
+        ['roadmap', 'comments', featureId],
+        oldComments => [...(oldComments || []), newComment],
+      );
+    },
+  });
 };

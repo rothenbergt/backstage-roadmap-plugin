@@ -139,7 +139,9 @@ export const StatusChip = ({
       label={getStatusLabel()}
       size={size}
       icon={showIcon ? getStatusIcon() : undefined}
-      className={`${classes.statusChip} ${classes[size]} ${getStatusClass()} ${variant === 'outlined' ? classes.outlined : ''} ${className || ''}`}
+      className={`${classes.statusChip} ${classes[size]} ${getStatusClass()} ${
+        variant === 'outlined' ? classes.outlined : ''
+      } ${className || ''}`}
       variant={variant === 'outlined' ? 'outlined' : 'default'}
     />
   );

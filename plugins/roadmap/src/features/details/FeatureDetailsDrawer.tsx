@@ -1,5 +1,9 @@
 import React, { useEffect } from 'react';
-import { useFeature, useUpdateFeatureStatus, useAdminStatus } from '../../hooks';
+import {
+  useFeature,
+  useUpdateFeatureStatus,
+  useAdminStatus,
+} from '../../hooks';
 import { CommentSection } from './CommentSection';
 import { StatusChip, VoteButton } from '../../components';
 import { formatDateUTC } from './dateUtils';
@@ -84,11 +88,11 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
   },
   statusContainer: {
-    display: 'flex', 
+    display: 'flex',
     alignItems: 'center',
     '& > *:first-child': {
       marginRight: theme.spacing(1),
-    }
+    },
   },
 }));
 
@@ -107,12 +111,12 @@ export const FeatureDetailsDrawer = ({
   const alertApi = useApi(alertApiRef);
   const { data: feature, isLoading, error } = useFeature(featureId);
   const { data: isAdmin = false } = useAdminStatus();
-  const { 
-    mutate: updateStatus, 
+  const {
+    mutate: updateStatus,
     isLoading: isUpdating,
     error: updateError,
     isSuccess: isUpdateSuccess,
-    data: updatedFeature
+    data: updatedFeature,
   } = useUpdateFeatureStatus();
 
   // Show alert when error occurs
@@ -129,7 +133,9 @@ export const FeatureDetailsDrawer = ({
   useEffect(() => {
     if (updateError) {
       alertApi.post({
-        message: `Failed to update feature status: ${(updateError as Error).message}`,
+        message: `Failed to update feature status: ${
+          (updateError as Error).message
+        }`,
         severity: 'error',
       });
     }
@@ -162,7 +168,7 @@ export const FeatureDetailsDrawer = ({
         </Box>
       );
     }
-    
+
     if (error) {
       return (
         <Box p={3}>
@@ -170,7 +176,7 @@ export const FeatureDetailsDrawer = ({
         </Box>
       );
     }
-    
+
     if (!feature) {
       return (
         <Box p={3}>
@@ -178,20 +184,20 @@ export const FeatureDetailsDrawer = ({
         </Box>
       );
     }
-    
+
     return (
       <>
         <Box className={classes.header}>
-          <IconButton 
+          <IconButton
             className={classes.closeButton}
-            edge="end" 
-            onClick={onClose} 
+            edge="end"
+            onClick={onClose}
             aria-label="close"
             size="small"
           >
             <CloseIcon />
           </IconButton>
-          
+
           <Typography variant="h5" className={classes.title}>
             {feature.title}
           </Typography>
@@ -207,11 +213,15 @@ export const FeatureDetailsDrawer = ({
                   Suggested by
                 </Typography>
                 <Typography variant="body2" className={classes.metaValue}>
-                  <EntityDisplayName 
+                  <EntityDisplayName
                     entityRef={{
                       kind: feature.author.split(':')[0],
-                      namespace: feature.author.includes('/') ? feature.author.split('/')[0].split(':')[1] : 'default',
-                      name: feature.author.includes('/') ? feature.author.split('/')[1] : feature.author.split(':')[1],
+                      namespace: feature.author.includes('/')
+                        ? feature.author.split('/')[0].split(':')[1]
+                        : 'default',
+                      name: feature.author.includes('/')
+                        ? feature.author.split('/')[1]
+                        : feature.author.split(':')[1],
                     }}
                     defaultKind="user"
                   />
@@ -242,7 +252,7 @@ export const FeatureDetailsDrawer = ({
         </Box>
 
         <Divider />
-        
+
         <Box className={classes.content}>
           <Box className={classes.statusActions}>
             <Box className={classes.voteContainer}>
@@ -256,10 +266,16 @@ export const FeatureDetailsDrawer = ({
 
             <Box className={classes.statusContainer}>
               <StatusChip status={feature.status} />
-              
+
               {isAdmin && (
-                <FormControl variant="outlined" size="small" style={{ minWidth: 150, marginLeft: '16px' }}>
-                  <InputLabel id="status-select-label">Change Status</InputLabel>
+                <FormControl
+                  variant="outlined"
+                  size="small"
+                  style={{ minWidth: 150, marginLeft: '16px' }}
+                >
+                  <InputLabel id="status-select-label">
+                    Change Status
+                  </InputLabel>
                   <Select
                     labelId="status-select-label"
                     value={feature.status}
@@ -267,16 +283,20 @@ export const FeatureDetailsDrawer = ({
                     label="Change Status"
                     disabled={isUpdating}
                   >
-                    <MenuItem value={FeatureStatus.Suggested}>Suggested</MenuItem>
+                    <MenuItem value={FeatureStatus.Suggested}>
+                      Suggested
+                    </MenuItem>
                     <MenuItem value={FeatureStatus.Planned}>Planned</MenuItem>
-                    <MenuItem value={FeatureStatus.Completed}>Completed</MenuItem>
+                    <MenuItem value={FeatureStatus.Completed}>
+                      Completed
+                    </MenuItem>
                     <MenuItem value={FeatureStatus.Declined}>Declined</MenuItem>
                   </Select>
                 </FormControl>
               )}
             </Box>
           </Box>
-          
+
           <Divider className={classes.divider} />
 
           <Box className={classes.section}>
@@ -288,7 +308,12 @@ export const FeatureDetailsDrawer = ({
   };
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} classes={{ paper: classes.drawer }}>
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      classes={{ paper: classes.drawer }}
+    >
       {renderDrawerContent()}
     </Drawer>
   );

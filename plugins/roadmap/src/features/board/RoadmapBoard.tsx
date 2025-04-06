@@ -3,21 +3,16 @@ import { useFeatures } from '../../hooks';
 import { FeatureCard } from '../../components';
 import { FeatureDetailsDrawer } from '../details/FeatureDetailsDrawer';
 import { CreateFeatureButton } from '../creation/CreateFeatureButton';
-import { 
-  Content, 
-  ContentHeader, 
+import {
+  Content,
+  ContentHeader,
   SupportButton,
   ResponseErrorPanel,
   Progress,
   Header,
   Page,
 } from '@backstage/core-components';
-import { 
-  Typography, 
-  Box, 
-  Paper,
-  alpha,
-} from '@material-ui/core';
+import { Typography, Box, Paper, alpha } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import LightbulbIcon from '@material-ui/icons/EmojiObjects';
@@ -87,35 +82,35 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.warning.dark,
     '& $iconMargin': {
       color: theme.palette.warning.main,
-    }
+    },
   },
   plannedHeader: {
     backgroundColor: alpha(theme.palette.info.main, 0.12),
     color: theme.palette.info.dark,
     '& $iconMargin': {
       color: theme.palette.info.main,
-    }
+    },
   },
   inProgressHeader: {
     backgroundColor: alpha(theme.palette.secondary.main, 0.12),
     color: theme.palette.secondary.dark,
     '& $iconMargin': {
       color: theme.palette.secondary.main,
-    }
+    },
   },
   completedHeader: {
     backgroundColor: alpha(theme.palette.success.main, 0.12),
     color: theme.palette.success.dark,
     '& $iconMargin': {
       color: theme.palette.success.main,
-    }
+    },
   },
   declinedHeader: {
     backgroundColor: alpha(theme.palette.error.main, 0.12),
     color: theme.palette.error.dark,
     '& $iconMargin': {
       color: theme.palette.error.main,
-    }
+    },
   },
   emptyState: {
     padding: theme.spacing(4),
@@ -128,46 +123,48 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
 }));
 
 // Configuration for the columns
 const columns = [
-  { 
-    status: FeatureStatus.Suggested, 
+  {
+    status: FeatureStatus.Suggested,
     title: 'Suggested',
     icon: <LightbulbIcon />,
-    headerClass: 'suggestedHeader'
+    headerClass: 'suggestedHeader',
   },
-  { 
-    status: FeatureStatus.Planned, 
+  {
+    status: FeatureStatus.Planned,
     title: 'Planned',
     icon: <EventNoteIcon />,
-    headerClass: 'plannedHeader'
+    headerClass: 'plannedHeader',
   },
-  { 
-    status: FeatureStatus.Completed, 
+  {
+    status: FeatureStatus.Completed,
     title: 'Completed',
     icon: <CheckCircleOutlineIcon />,
-    headerClass: 'completedHeader'
+    headerClass: 'completedHeader',
   },
-  { 
-    status: FeatureStatus.Declined, 
+  {
+    status: FeatureStatus.Declined,
     title: 'Declined',
     icon: <CancelOutlinedIcon />,
-    headerClass: 'declinedHeader'
+    headerClass: 'declinedHeader',
   },
 ];
 
 export const RoadmapBoard = () => {
   const classes = useStyles();
   const { data: features, isLoading, error } = useFeatures();
-  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
+  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(
+    null,
+  );
 
   // Group features by status
   const featuresByStatus = React.useMemo(() => {
     if (!features) return {};
-    
+
     return features.reduce((acc, feature) => {
       if (!acc[feature.status]) {
         acc[feature.status] = [];
@@ -176,12 +173,12 @@ export const RoadmapBoard = () => {
       return acc;
     }, {} as Record<string, any[]>);
   }, [features]);
-  
+
   // Handle feature selection
   const handleFeatureClick = (featureId: string) => {
     setSelectedFeatureId(featureId);
   };
-  
+
   // Handle drawer close
   const handleDrawerClose = () => {
     setSelectedFeatureId(null);
@@ -202,8 +199,8 @@ export const RoadmapBoard = () => {
         <ContentHeader title="">
           <CreateFeatureButton />
           <SupportButton>
-            The roadmap shows planned features and improvements. 
-            Vote on items to help prioritize what gets built next.
+            The roadmap shows planned features and improvements. Vote on items
+            to help prioritize what gets built next.
           </SupportButton>
         </ContentHeader>
 
@@ -211,11 +208,13 @@ export const RoadmapBoard = () => {
           {columns.map(({ status, title, icon, headerClass }) => (
             <div className={classes.columnWrapper} key={status}>
               <Paper className={classes.column}>
-                <Box className={`${classes.columnHeader} ${classes[headerClass as keyof typeof classes]}`}>
+                <Box
+                  className={`${classes.columnHeader} ${
+                    classes[headerClass as keyof typeof classes]
+                  }`}
+                >
                   <span className={classes.iconMargin}>{icon}</span>
-                  <Typography variant="subtitle2">
-                    {title}
-                  </Typography>
+                  <Typography variant="subtitle2">{title}</Typography>
                   <span className={classes.statusCount}>
                     {featuresByStatus[status]?.length || 0}
                   </span>
@@ -230,9 +229,7 @@ export const RoadmapBoard = () => {
                   ))}
                   {!featuresByStatus[status]?.length && (
                     <div className={classes.emptyState}>
-                      <Typography variant="body2">
-                        No features yet
-                      </Typography>
+                      <Typography variant="body2">No features yet</Typography>
                     </div>
                   )}
                 </Box>

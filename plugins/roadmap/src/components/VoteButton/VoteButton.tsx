@@ -51,7 +51,7 @@ const useStyles = makeStyles(theme => ({
       '& .MuiSvgIcon-root': {
         color: theme.palette.action.active,
       },
-    }, 
+    },
     '&:hover $iconWrapper': {
       backgroundColor: theme.palette.action.selected,
     },
@@ -117,7 +117,7 @@ export const VoteButton = ({
 
   return (
     <Tooltip title={hasVoted ? 'Remove your vote' : 'Upvote this feature'}>
-      <Box 
+      <Box
         className={`
           ${classes.voteContainer} 
           ${classes[size]} 

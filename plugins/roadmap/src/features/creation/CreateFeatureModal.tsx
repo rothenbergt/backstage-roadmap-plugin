@@ -33,14 +33,17 @@ type CreateFeatureModalProps = {
   onClose: () => void;
 };
 
-export const CreateFeatureModal = ({ open, onClose }: CreateFeatureModalProps) => {
+export const CreateFeatureModal = ({
+  open,
+  onClose,
+}: CreateFeatureModalProps) => {
   const classes = useStyles();
   const alertApi = useApi(alertApiRef);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [titleError, setTitleError] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
-  
+
   const { mutate: createFeature, isLoading, error } = useCreateFeature();
 
   // Show alert when error changes
@@ -105,21 +108,21 @@ export const CreateFeatureModal = ({ open, onClose }: CreateFeatureModalProps) =
           });
           handleClose();
         },
-      }
+      },
     );
   };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md">
       <DialogTitle>Suggest a Feature</DialogTitle>
-      
+
       <DialogContent className={classes.dialogContent}>
         <form onSubmit={handleSubmit} className={classes.form}>
           <TextField
             label="Title"
             variant="outlined"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={e => setTitle(e.target.value)}
             fullWidth
             required
             error={!!titleError}
@@ -127,12 +130,12 @@ export const CreateFeatureModal = ({ open, onClose }: CreateFeatureModalProps) =
             disabled={isLoading}
             inputProps={{ maxLength: 100 }}
           />
-          
+
           <TextField
             label="Description"
             variant="outlined"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={e => setDescription(e.target.value)}
             fullWidth
             multiline
             minRows={4}
@@ -142,15 +145,16 @@ export const CreateFeatureModal = ({ open, onClose }: CreateFeatureModalProps) =
             disabled={isLoading}
             placeholder="Describe the feature and why it would be valuable"
           />
-          
+
           <Box mt={2}>
             <Typography variant="caption" color="textSecondary">
-              Your suggestion will be visible to all users. The team will review it and may update its status.
+              Your suggestion will be visible to all users. The team will review
+              it and may update its status.
             </Typography>
           </Box>
         </form>
       </DialogContent>
-      
+
       <DialogActions className={classes.dialogActions}>
         <Button onClick={handleClose} disabled={isLoading}>
           Cancel

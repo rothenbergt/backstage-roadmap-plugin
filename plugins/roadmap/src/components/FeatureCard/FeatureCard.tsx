@@ -1,13 +1,11 @@
 import React from 'react';
-import {
-  Card,
-  Typography,
-  Box,
-  Divider,
-} from '@material-ui/core';
+import { Card, Typography, Box, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { VoteButton } from '../VoteButton/VoteButton';
-import { Feature, FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
+import {
+  Feature,
+  FeatureStatus,
+} from '@rothenbergt/backstage-plugin-roadmap-common';
 
 const useStyles = makeStyles(theme => ({
   card: {
@@ -39,7 +37,7 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '70px', 
+    width: '70px',
     flexShrink: 0,
     flexGrow: 0,
     height: '100%',
@@ -79,7 +77,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 type FeatureCardProps = {
-  feature: Feature & { hasVoted: boolean; };
+  feature: Feature & { hasVoted: boolean };
   onClick: () => void;
 };
 
@@ -110,21 +108,17 @@ export const FeatureCard = ({ feature, onClick }: FeatureCardProps) => {
 
   return (
     <Card className={classes.card} onClick={onClick} elevation={0}>
-      <div 
+      <div
         className={classes.statusIndicator}
-        style={{ backgroundColor: getStatusColor() }} 
+        style={{ backgroundColor: getStatusColor() }}
       />
-      
+
       <Box className={classes.voteColumn} onClick={handleVoteClick}>
-        <VoteButton
-          featureId={id}
-          hasVoted={hasVoted}
-          voteCount={votes}
-        />
+        <VoteButton featureId={id} hasVoted={hasVoted} voteCount={votes} />
       </Box>
-      
+
       <Divider orientation="vertical" className={classes.verticalDivider} />
-      
+
       <Box className={classes.contentColumn}>
         <Typography variant="subtitle1" className={classes.title}>
           {title}

@@ -25,12 +25,8 @@ export const CreateFeatureButton = () => {
       >
         Suggest Feature
       </LinkButton>
-      
-      <CreateFeatureModal
-        open={isModalOpen}
-        onClose={handleClose}
-      />
+
+      <CreateFeatureModal open={isModalOpen} onClose={handleClose} />
     </>
   );
 };
-
