@@ -11,6 +11,7 @@ import { rootRouteRef } from './routes';
 import { roadmapApiRef, RoadmapApiClient } from './api';
 import { QueryClient } from 'react-query';
 import { QueryClientProvider } from 'react-query';
+import { RoadmapBoard } from './features/board/RoadmapBoard';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -26,9 +27,6 @@ const queryClient = new QueryClient({
 
 // Create a wrapped version of the roadmap component that includes the QueryClientProvider
 const WrappedRoadmapComponent = (props: any) => {
-  // Import RoadmapBoard component directly without using React.lazy
-  const { RoadmapBoard } = require('./features/board/RoadmapBoard');
-
   return React.createElement(
     QueryClientProvider,
     { client: queryClient },
