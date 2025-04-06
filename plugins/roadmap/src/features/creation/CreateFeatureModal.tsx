@@ -52,6 +52,7 @@ export const CreateFeatureModal = ({
       alertApi.post({
         message: `Failed to create feature: ${(error as Error).message}`,
         severity: 'error',
+        display: 'transient',
       });
     }
   }, [error, alertApi]);
@@ -105,6 +106,7 @@ export const CreateFeatureModal = ({
           alertApi.post({
             message: 'Feature suggestion submitted successfully!',
             severity: 'success',
+            display: 'transient',
           });
           handleClose();
         },

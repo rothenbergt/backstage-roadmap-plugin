@@ -62,15 +62,14 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         );
       }
 
-      // Insert comment
-      const [id] = await trx('comments').insert({
-        feature_id: comment.featureId,
-        text: comment.text,
-        author: comment.author,
-      });
-
-      // Get the inserted comment
-      const newComment = await trx('comments').where({ id }).first();
+      // Insert comment and return the complete inserted object
+      const [newComment] = await trx('comments')
+        .insert({
+          feature_id: comment.featureId,
+          text: comment.text,
+          author: comment.author,
+        })
+        .returning('*');
 
       await trx.commit();
       return newComment;
@@ -123,13 +122,14 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
   async addFeature(feature: NewFeature & { author: string }): Promise<Feature> {
     const trx = await this.knex.transaction();
     try {
-      const [id] = await trx('features').insert({
-        ...feature,
-        status: FeatureStatus.Suggested,
-        votes: 0,
-      });
-
-      const newFeature = await trx('features').where({ id }).first();
+      // Insert feature and return the complete inserted object
+      const [newFeature] = await trx('features')
+        .insert({
+          ...feature,
+          status: FeatureStatus.Suggested,
+          votes: 0,
+        })
+        .returning('*');
 
       await trx.commit();
       return newFeature;
@@ -187,14 +187,14 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         throw new NotFoundError(`Feature with id ${id} not found`);
       }
 
-      // Update the status
-      await trx('features').where({ id }).update({
-        status,
-        updated_at: this.knex.fn.now(),
-      });
-
-      // Get the updated feature
-      const updatedFeature = await trx('features').where({ id }).first();
+      // Update the status and return the updated object
+      const [updatedFeature] = await trx('features')
+        .where({ id })
+        .update({
+          status,
+          updated_at: this.knex.fn.now(),
+        })
+        .returning('*');
 
       await trx.commit();
       return updatedFeature;

@@ -33,14 +33,13 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 1. Install the plugin in your Backstage instance:
 
    ```
-   yarn add --cwd packages/backend @rothenbergt/backstage-plugin-roadmap-backend
-   yarn add --cwd packages/app @rothenbergt/backstage-plugin-roadmap
+   yarn add @rothenbergt/backstage-plugin-roadmap-backend --cwd packages/backend
+   yarn add @rothenbergt/backstage-plugin-roadmap --cwd packages/app
    ```
 
 2. Add the plugin to your `packages/backend/src/index.ts`:
 
    ```typescript
-   import roadmap from ;
    // ...
    backend.add(import('@rothenbergt/backstage-plugin-roadmap-backend'));
    ```

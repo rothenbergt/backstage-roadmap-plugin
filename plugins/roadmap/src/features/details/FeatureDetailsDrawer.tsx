@@ -125,6 +125,7 @@ export const FeatureDetailsDrawer = ({
       alertApi.post({
         message: `Failed to load feature: ${(error as Error).message}`,
         severity: 'error',
+        display: 'transient',
       });
     }
   }, [error, alertApi]);
@@ -137,6 +138,7 @@ export const FeatureDetailsDrawer = ({
           (updateError as Error).message
         }`,
         severity: 'error',
+        display: 'transient',
       });
     }
   }, [updateError, alertApi]);
@@ -147,6 +149,7 @@ export const FeatureDetailsDrawer = ({
       alertApi.post({
         message: `Feature status updated to ${updatedFeature.status}`,
         severity: 'success',
+        display: 'transient',
       });
     }
   }, [isUpdateSuccess, updatedFeature, alertApi]);

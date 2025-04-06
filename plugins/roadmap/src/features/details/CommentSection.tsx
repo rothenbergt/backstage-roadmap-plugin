@@ -119,6 +119,7 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
       alertApi.post({
         message: `Failed to load comments: ${(error as Error).message}`,
         severity: 'error',
+        display: 'transient',
       });
     }
   }, [error, alertApi]);
@@ -129,6 +130,7 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
       alertApi.post({
         message: `Failed to add comment: ${(submitError as Error).message}`,
         severity: 'error',
+        display: 'transient',
       });
     }
   }, [submitError, alertApi]);
@@ -173,6 +175,7 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
         alertApi.post({
           message: 'Comment added successfully!',
           severity: 'success',
+          display: 'transient',
         });
         setCommentText('');
       },
