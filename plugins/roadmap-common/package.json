@@ -24,12 +24,12 @@
     "postpack": "backstage-cli package postpack"
   },
   "devDependencies": {
-    "@backstage/cli": "^0.31.0"
+    "@backstage/cli": "^0.34.3"
   },
   "files": [
     "dist"
   ],
   "dependencies": {
-    "@backstage/plugin-permission-common": "^0.8.4"
+    "@backstage/plugin-permission-common": "^0.9.1"
   }
 }
