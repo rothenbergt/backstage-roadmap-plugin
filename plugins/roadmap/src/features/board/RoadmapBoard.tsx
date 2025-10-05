@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFeatures } from '../../hooks';
 import { FeatureCard } from '../../components';
 import { FeatureDetailsDrawer } from '../details/FeatureDetailsDrawer';
@@ -162,7 +162,7 @@ export const RoadmapBoard = () => {
   );
 
   // Group features by status
-  const featuresByStatus = React.useMemo(() => {
+  const featuresByStatus = useMemo(() => {
     if (!features) return {};
 
     return features.reduce((acc, feature) => {

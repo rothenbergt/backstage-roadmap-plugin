@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCreateFeature } from '../../hooks';
 import {
   Dialog,
@@ -47,7 +47,7 @@ export const CreateFeatureModal = ({
   const { mutate: createFeature, isLoading, error } = useCreateFeature();
 
   // Show alert when error changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       alertApi.post({
         message: `Failed to create feature: ${(error as Error).message}`,

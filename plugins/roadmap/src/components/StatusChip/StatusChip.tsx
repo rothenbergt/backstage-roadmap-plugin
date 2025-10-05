@@ -1,4 +1,3 @@
-import React from 'react';
 import { Chip, makeStyles, alpha } from '@material-ui/core';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import LightbulbIcon from '@material-ui/icons/EmojiObjects';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { LinkButton } from '@backstage/core-components';
 import AddIcon from '@material-ui/icons/Add';
 import { CreateFeatureModal } from './CreateFeatureModal';

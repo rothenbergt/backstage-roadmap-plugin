@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useComments, useAddComment } from '../../hooks';
 import { formatDateUTC } from './dateUtils';
 import {

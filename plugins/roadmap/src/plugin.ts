@@ -1,4 +1,4 @@
-import React from 'react';
+import { createElement } from 'react';
 import {
   createPlugin,
   createRoutableExtension,
@@ -27,10 +27,10 @@ const queryClient = new QueryClient({
 
 // Create a wrapped version of the roadmap component that includes the QueryClientProvider
 const WrappedRoadmapComponent = (props: any) => {
-  return React.createElement(
+  return createElement(
     QueryClientProvider,
     { client: queryClient },
-    React.createElement(RoadmapBoard, props),
+    createElement(RoadmapBoard, props),
   );
 };
 

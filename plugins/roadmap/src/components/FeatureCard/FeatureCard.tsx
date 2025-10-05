@@ -1,4 +1,4 @@
-import React from 'react';
+import { MouseEvent } from 'react';
 import { Card, Typography, Box, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { VoteButton } from '../VoteButton/VoteButton';
@@ -102,7 +102,7 @@ export const FeatureCard = ({ feature, onClick }: FeatureCardProps) => {
   };
 
   // Prevent vote click from triggering the card click
-  const handleVoteClick = (e: React.MouseEvent) => {
+  const handleVoteClick = (e: MouseEvent) => {
     e.stopPropagation();
   };
 

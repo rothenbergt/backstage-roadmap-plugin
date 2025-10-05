@@ -1,4 +1,4 @@
-import React from 'react';
+import { MouseEvent } from 'react';
 import { Box, Tooltip, alpha } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ThumbUpIcon from '@material-ui/icons/ThumbUp';
@@ -109,7 +109,7 @@ export const VoteButton = ({
   const classes = useStyles();
   const { mutate: toggleVote } = useToggleVote();
 
-  const handleClick = (event: React.MouseEvent) => {
+  const handleClick = (event: MouseEvent) => {
     // Prevent the click from propagating to parent components
     event.stopPropagation();
     toggleVote(featureId);
