@@ -5,13 +5,10 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
-import { NotFoundError, ConflictError } from '@backstage/errors';
 
 /**
  * Interface for the Roadmap database operations
  */
-
-export { NotFoundError, ConflictError };
 export interface RoadmapDatabase {
   /**
    * Add a comment to a feature
@@ -110,4 +107,17 @@ export interface RoadmapDatabase {
    * @throws {ConflictError} When the database operation fails
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
+
+  /**
+   * Check if a user has voted on multiple features (batch operation)
+   *
+   * @param featureIds - Array of feature IDs
+   * @param voter - The user
+   * @returns Object mapping feature IDs to boolean (has voted)
+   * @throws {ConflictError} When the database operation fails
+   */
+  hasVotedBatch(
+    featureIds: string[],
+    voter: string,
+  ): Promise<Record<string, boolean>>;
 }

@@ -1,6 +1,6 @@
 import { useApi } from '@backstage/core-plugin-api';
 import { roadmapApiRef } from '../api';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   NewFeature,
   FeatureStatus,
@@ -15,18 +15,22 @@ type FeatureWithVote = Feature & { hasVoted: boolean };
 export const useFeatures = () => {
   const api = useApi(roadmapApiRef);
 
-  return useQuery(['roadmap', 'features'], async () => {
-    const features = await api.getFeatures();
+  return useQuery({
+    queryKey: ['roadmap', 'features'],
+    queryFn: async () => {
+      const features = await api.getFeatures();
 
-    // For each feature, check if the current user has voted on it
-    const featuresWithVoted = await Promise.all(
-      features.map(async feature => {
-        const hasVoted = await api.hasVoted(feature.id);
-        return { ...feature, hasVoted };
-      }),
-    );
+      // Batch check if the current user has voted on any features
+      const featureIds = features.map(f => f.id);
+      const hasVotedMap = await api.hasVotedBatch(featureIds);
 
-    return featuresWithVoted;
+      const featuresWithVoted = features.map(feature => ({
+        ...feature,
+        hasVoted: hasVotedMap[feature.id] || false,
+      }));
+
+      return featuresWithVoted;
+    },
   });
 };
 
@@ -36,17 +40,15 @@ export const useFeatures = () => {
 export const useFeature = (featureId: string) => {
   const api = useApi(roadmapApiRef);
 
-  return useQuery(
-    ['roadmap', 'feature', featureId],
-    async () => {
+  return useQuery({
+    queryKey: ['roadmap', 'feature', featureId],
+    queryFn: async () => {
       const feature = await api.getFeatureById(featureId);
       const hasVoted = await api.hasVoted(feature.id);
       return { ...feature, hasVoted };
     },
-    {
-      enabled: Boolean(featureId),
-    },
-  );
+    enabled: Boolean(featureId),
+  });
 };
 
 /**
@@ -56,15 +58,13 @@ export const useCreateFeature = () => {
   const api = useApi(roadmapApiRef);
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (newFeature: NewFeature) => api.createFeature(newFeature),
-    {
-      onSuccess: () => {
-        // Invalidate the features list to refetch it
-        queryClient.invalidateQueries(['roadmap', 'features']);
-      },
+  return useMutation({
+    mutationFn: (newFeature: NewFeature) => api.createFeature(newFeature),
+    onSuccess: () => {
+      // Invalidate the features list to refetch it
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
     },
-  );
+  });
 };
 
 /**
@@ -74,33 +74,31 @@ export const useUpdateFeatureStatus = () => {
   const api = useApi(roadmapApiRef);
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({ id, status }: { id: string; status: FeatureStatus }) =>
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: FeatureStatus }) =>
       api.updateFeatureStatus(id, status),
-    {
-      onSuccess: updatedFeature => {
-        // Update the feature in the cache
-        queryClient.setQueryData(
-          ['roadmap', 'feature', updatedFeature.id],
-          (oldData: FeatureWithVote | undefined) => {
-            if (!oldData) return { ...updatedFeature, hasVoted: false };
-            return { ...oldData, ...updatedFeature };
-          },
-        );
+    onSuccess: updatedFeature => {
+      // Update the feature in the cache
+      queryClient.setQueryData(
+        ['roadmap', 'feature', updatedFeature.id],
+        (oldData: FeatureWithVote | undefined) => {
+          if (!oldData) return { ...updatedFeature, hasVoted: false };
+          return { ...oldData, ...updatedFeature };
+        },
+      );
 
-        // Also update the feature in the features list
-        queryClient.setQueryData<FeatureWithVote[]>(
-          ['roadmap', 'features'],
-          oldData => {
-            if (!oldData) return [];
-            return oldData.map(feature =>
-              feature.id === updatedFeature.id
-                ? { ...feature, ...updatedFeature }
-                : feature,
-            );
-          },
-        );
-      },
+      // Also update the feature in the features list
+      queryClient.setQueryData<FeatureWithVote[]>(
+        ['roadmap', 'features'],
+        oldData => {
+          if (!oldData) return [];
+          return oldData.map(feature =>
+            feature.id === updatedFeature.id
+              ? { ...feature, ...updatedFeature }
+              : feature,
+          );
+        },
+      );
     },
-  );
+  });
 };

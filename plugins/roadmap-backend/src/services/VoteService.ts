@@ -33,4 +33,17 @@ export class VoteService implements VoteServiceInterface {
     this.logger.info(`Checking if ${voter} has voted on feature ${featureId}`);
     return this.db.hasVoted(featureId, voter);
   }
+
+  async hasVotedBatch(
+    featureIds: string[],
+    voter: string,
+  ): Promise<Record<string, boolean>> {
+    this.logger.info(
+      `Checking if ${voter} has voted on ${featureIds.length} features`,
+    );
+    if (featureIds.length === 0) {
+      return {};
+    }
+    return this.db.hasVotedBatch(featureIds, voter);
+  }
 }

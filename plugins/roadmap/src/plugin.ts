@@ -9,15 +9,14 @@ import {
 } from '@backstage/core-plugin-api';
 import { rootRouteRef } from './routes';
 import { roadmapApiRef, RoadmapApiClient } from './api';
-import { QueryClient } from 'react-query';
-import { QueryClientProvider } from 'react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { RoadmapBoard } from './features/board/RoadmapBoard';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      keepPreviousData: true,
       refetchOnWindowFocus: false,
       retry: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -25,7 +24,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create a wrapped version of the roadmap component that includes the QueryClientProvider
+// Create a wrapped version of the roadmap component with QueryClientProvider
 const WrappedRoadmapComponent = (props: any) => {
   return createElement(
     QueryClientProvider,

@@ -297,4 +297,33 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
       );
     }
   }
+
+  async hasVotedBatch(
+    featureIds: string[],
+    voter: string,
+  ): Promise<Record<string, boolean>> {
+    try {
+      if (featureIds.length === 0) {
+        return {};
+      }
+
+      const votes = await this.knex('votes')
+        .whereIn('feature_id', featureIds)
+        .where({ voter })
+        .select('feature_id');
+
+      const votedFeatureIds = new Set(votes.map(v => v.feature_id.toString()));
+
+      return featureIds.reduce((acc, featureId) => {
+        acc[featureId] = votedFeatureIds.has(featureId);
+        return acc;
+      }, {} as Record<string, boolean>);
+    } catch (error) {
+      this.logger.error(`Error checking batch votes: ${error}`);
+      throw new ConflictError(
+        `Failed to check votes for user ${voter}`,
+        error as Error,
+      );
+    }
+  }
 }

@@ -100,6 +100,16 @@ export interface VoteServiceInterface {
    * @throws {ConflictError} When the database operation fails
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
+
+  /**
+   * Check if a user has voted on multiple features (batch operation)
+   *
+   * @throws {ConflictError} When the database operation fails
+   */
+  hasVotedBatch(
+    featureIds: string[],
+    voter: string,
+  ): Promise<Record<string, boolean>>;
 }
 
 /**

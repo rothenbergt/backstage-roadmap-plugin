@@ -5,6 +5,11 @@ import {
   IdentityApi,
 } from '@backstage/core-plugin-api';
 import {
+  NotFoundError,
+  ConflictError,
+  InputError,
+} from '@backstage/errors';
+import {
   Feature,
   NewFeature,
   FeatureStatus,
@@ -75,6 +80,11 @@ export interface RoadmapApi {
   hasVoted(featureId: string): Promise<boolean>;
 
   /**
+   * Check if the current user has voted on multiple features (batch)
+   */
+  hasVotedBatch(featureIds: string[]): Promise<Record<string, boolean>>;
+
+  /**
    * Check if the current user is a roadmap admin
    */
   isRoadmapAdmin(): Promise<boolean>;
@@ -128,8 +138,19 @@ export class RoadmapApiClient implements RoadmapApi {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error);
+      const errorText = await response.text();
+
+      // Map HTTP status codes to appropriate Backstage errors
+      switch (response.status) {
+        case 400:
+          throw new InputError(errorText || 'Bad Request');
+        case 404:
+          throw new NotFoundError(errorText || 'Resource not found');
+        case 409:
+          throw new ConflictError(errorText || 'Conflict occurred');
+        default:
+          throw new Error(`${response.status}: ${errorText || 'Unknown error'}`);
+      }
     }
 
     return await response.json();
@@ -188,6 +209,18 @@ export class RoadmapApiClient implements RoadmapApi {
 
   async hasVoted(featureId: string): Promise<boolean> {
     return this.fetch<boolean>(`/votes/${featureId}/user`);
+  }
+
+  async hasVotedBatch(
+    featureIds: string[],
+  ): Promise<Record<string, boolean>> {
+    if (featureIds.length === 0) {
+      return {};
+    }
+    const idsParam = featureIds.join(',');
+    return this.fetch<Record<string, boolean>>(
+      `/votes/user/batch?ids=${idsParam}`,
+    );
   }
 
   async isRoadmapAdmin(): Promise<boolean> {

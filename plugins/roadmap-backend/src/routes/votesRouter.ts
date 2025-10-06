@@ -97,5 +97,35 @@ export function votesRouter(options: RouterOptions): express.Router {
     }
   });
 
+  // Check if user has voted on multiple features (batch)
+  router.get('/user/batch', async (req, res, next) => {
+    try {
+      const idsParam = req.query.ids;
+
+      // Handle empty parameter case gracefully
+      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
+        res.json({});
+        return;
+      }
+
+      const featureIds = idsParam.split(',');
+
+      if (featureIds.length === 0) {
+        res.json({});
+        return;
+      }
+
+      const username = await permissionService.getUsername(req);
+      const hasVotedMap = await voteService.hasVotedBatch(
+        featureIds,
+        username,
+      );
+
+      res.json(hasVotedMap);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   return router;
 }
