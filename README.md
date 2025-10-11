@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@rothenbergt/backstage-plugin-roadmap?label=roadmap)](https://www.npmjs.com/package/@rothenbergt/backstage-plugin-roadmap)
 [![npm version](https://img.shields.io/npm/v/@rothenbergt/backstage-plugin-roadmap-backend?label=roadmap-backend)](https://www.npmjs.com/package/@rothenbergt/backstage-plugin-roadmap-backend)
+[![CI](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Backstage](https://img.shields.io/badge/Backstage-1.43.3-brightgreen.svg)](https://backstage.io)
 [![Node](https://img.shields.io/badge/node-18%20%7C%2020%20%7C%2022-blue.svg)](https://nodejs.org)
@@ -83,4 +84,35 @@ roadmap:
 
 ## 🤝 Contributing
 
-We welcome contributions!
+We welcome contributions! Here's how to get started:
+
+### Development Setup
+
+1. Fork and clone the repository
+2. Install dependencies: `yarn install`
+3. Make your changes
+4. Run tests: `yarn test:all`
+5. Run lint: `yarn lint:all`
+
+### Creating a Changeset
+
+This project uses [Changesets](https://github.com/changesets/changesets) to manage versions and releases. When you make a change that affects users, you need to create a changeset:
+
+1. Run `yarn changeset`
+2. Select which packages are affected (use space to select, enter to confirm)
+3. Choose the type of change:
+   - **patch** - Bug fixes, minor updates
+   - **minor** - New features, non-breaking changes
+   - **major** - Breaking changes
+4. Write a short description of your changes
+5. Commit the changeset file along with your changes
+
+### Pull Request Process
+
+1. Create a changeset if needed (see above)
+2. Push your changes to your fork
+3. Open a Pull Request with a clear description
+4. Wait for CI checks to pass
+5. A maintainer will review your PR
+
+Once merged, your changeset will automatically trigger a "Version Packages" PR, which when merged, publishes the new version to npm!
