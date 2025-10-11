@@ -106,7 +106,7 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
   const { data: comments, isLoading, error } = useComments(featureId);
   const {
     mutate: addComment,
-    isLoading: isSubmitting,
+    isPending: isSubmitting,
     error: submitError,
   } = useAddComment(featureId);
   const [commentText, setCommentText] = useState('');

@@ -44,7 +44,7 @@ export const CreateFeatureModal = ({
   const [titleError, setTitleError] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
 
-  const { mutate: createFeature, isLoading, error } = useCreateFeature();
+  const { mutate: createFeature, isPending, error } = useCreateFeature();
 
   // Show alert when error changes
   useEffect(() => {
@@ -129,7 +129,7 @@ export const CreateFeatureModal = ({
             required
             error={!!titleError}
             helperText={titleError}
-            disabled={isLoading}
+            disabled={isPending}
             inputProps={{ maxLength: 100 }}
           />
 
@@ -144,7 +144,7 @@ export const CreateFeatureModal = ({
             required
             error={!!descriptionError}
             helperText={descriptionError}
-            disabled={isLoading}
+            disabled={isPending}
             placeholder="Describe the feature and why it would be valuable"
           />
 
@@ -158,16 +158,16 @@ export const CreateFeatureModal = ({
       </DialogContent>
 
       <DialogActions className={classes.dialogActions}>
-        <Button onClick={handleClose} disabled={isLoading}>
+        <Button onClick={handleClose} disabled={isPending}>
           Cancel
         </Button>
         <Button
           color="primary"
           variant="contained"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={isPending}
         >
-          {isLoading ? 'Submitting...' : 'Submit'}
+          {isPending ? 'Submitting...' : 'Submit'}
         </Button>
       </DialogActions>
     </Dialog>

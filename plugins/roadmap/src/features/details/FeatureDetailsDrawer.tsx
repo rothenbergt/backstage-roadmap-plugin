@@ -113,7 +113,7 @@ export const FeatureDetailsDrawer = ({
   const { data: isAdmin = false } = useAdminStatus();
   const {
     mutate: updateStatus,
-    isLoading: isUpdating,
+    isPending: isUpdating,
     error: updateError,
     isSuccess: isUpdateSuccess,
     data: updatedFeature,
