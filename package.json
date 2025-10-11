@@ -20,7 +20,11 @@
     "lint": "backstage-cli repo lint --since origin/master",
     "lint:all": "backstage-cli repo lint",
     "prettier:check": "prettier --check .",
-    "new": "backstage-cli new --scope internal"
+    "new": "backstage-cli new --scope internal",
+    "postinstall": "husky",
+    "changeset": "changeset",
+    "release": "yarn build:all && changeset publish",
+    "lint-staged": "lint-staged"
   },
   "workspaces": {
     "packages": [
@@ -30,8 +34,11 @@
   "devDependencies": {
     "@backstage/cli": "^0.34.3",
     "@backstage/e2e-test-utils": "^0.1.1",
+    "@changesets/cli": "^2.29.7",
     "@spotify/prettier-config": "^12.0.0",
     "@types/react-dom": "^18",
+    "husky": "^9.0.11",
+    "lint-staged": "^16.2.4",
     "node-gyp": "^10.0.0",
     "prettier": "^2.3.2",
     "react-dom": "^18.3.1",
