@@ -75,7 +75,7 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
       return newComment;
     } catch (error) {
       await trx.rollback();
-      this.logger.error(`Error inserting comment: ${error}`);
+      this.logger.error('Error inserting comment', { error: String(error) });
 
       // Rethrow NotFoundError as is
       if (error instanceof NotFoundError) {
@@ -103,9 +103,9 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         .orderBy('created_at', 'desc')
         .select('*');
     } catch (error) {
-      this.logger.error(
-        `Error fetching comments for feature ${featureId}: ${error}`,
-      );
+      this.logger.error(`Error fetching comments for feature ${featureId}`, {
+        error: String(error),
+      });
 
       // Rethrow NotFoundError as is
       if (error instanceof NotFoundError) {
@@ -135,7 +135,7 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
       return newFeature;
     } catch (error) {
       await trx.rollback();
-      this.logger.error(`Error adding feature: ${error}`);
+      this.logger.error('Error adding feature', { error: String(error) });
       throw new ConflictError('Failed to add feature', error as Error);
     }
   }
@@ -144,7 +144,9 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
     try {
       return this.knex('features').orderBy('created_at', 'desc').select('*');
     } catch (error) {
-      this.logger.error(`Error fetching all features: ${error}`);
+      this.logger.error('Error fetching all features', {
+        error: String(error),
+      });
       throw new ConflictError('Failed to get all features', error as Error);
     }
   }
@@ -159,7 +161,9 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
 
       return feature;
     } catch (error) {
-      this.logger.error(`Error fetching feature ${id}: ${error}`);
+      this.logger.error(`Error fetching feature ${id}`, {
+        error: String(error),
+      });
 
       // Rethrow NotFoundError as is
       if (error instanceof NotFoundError) {
@@ -200,7 +204,9 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
       return updatedFeature;
     } catch (error) {
       await trx.rollback();
-      this.logger.error(`Error updating feature status: ${error}`);
+      this.logger.error('Error updating feature status', {
+        error: String(error),
+      });
 
       // Rethrow NotFoundError as is
       if (error instanceof NotFoundError) {
@@ -214,7 +220,10 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
     }
   }
 
-  async toggleVote(featureId: string, voter: string): Promise<boolean> {
+  async toggleVote(
+    featureId: string,
+    voter: string,
+  ): Promise<{ voteAdded: boolean; voteCount: number }> {
     const trx = await this.knex.transaction();
     try {
       // First check if the feature exists
@@ -229,22 +238,29 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         .where({ feature_id: featureId, voter })
         .first();
 
+      let voteAdded: boolean;
       if (existingVote) {
         // Remove the vote
         await trx('votes').where({ feature_id: featureId, voter }).delete();
         await trx('features').where({ id: featureId }).decrement('votes', 1);
-        await trx.commit();
-        return false;
+        voteAdded = false;
+      } else {
+        // Add the vote
+        await trx('votes').insert({ feature_id: featureId, voter });
+        await trx('features').where({ id: featureId }).increment('votes', 1);
+        voteAdded = true;
       }
 
-      // Add the vote
-      await trx('votes').insert({ feature_id: featureId, voter });
-      await trx('features').where({ id: featureId }).increment('votes', 1);
+      // Read the updated count within the same transaction
+      const updated = await trx('features')
+        .where({ id: featureId })
+        .select('votes')
+        .first();
       await trx.commit();
-      return true;
+      return { voteAdded, voteCount: updated?.votes ?? 0 };
     } catch (error) {
       await trx.rollback();
-      this.logger.error(`Error toggling vote: ${error}`);
+      this.logger.error('Error toggling vote', { error: String(error) });
 
       // Rethrow NotFoundError as is
       if (error instanceof NotFoundError) {
@@ -278,7 +294,7 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         return acc;
       }, {} as Record<string, number>);
     } catch (error) {
-      this.logger.error(`Error getting vote counts: ${error}`);
+      this.logger.error('Error getting vote counts', { error: String(error) });
       throw new ConflictError('Failed to get vote counts', error as Error);
     }
   }
@@ -290,7 +306,9 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         .first();
       return !!vote;
     } catch (error) {
-      this.logger.error(`Error checking if user has voted: ${error}`);
+      this.logger.error('Error checking if user has voted', {
+        error: String(error),
+      });
       throw new ConflictError(
         `Failed to check if user ${voter} has voted on feature ${featureId}`,
         error as Error,
@@ -319,7 +337,7 @@ export class RoadmapDatabaseClient implements RoadmapDatabase {
         return acc;
       }, {} as Record<string, boolean>);
     } catch (error) {
-      this.logger.error(`Error checking batch votes: ${error}`);
+      this.logger.error('Error checking batch votes', { error: String(error) });
       throw new ConflictError(
         `Failed to check votes for user ${voter}`,
         error as Error,

@@ -73,11 +73,14 @@ export interface RoadmapDatabase {
    *
    * @param featureId - The ID of the feature
    * @param voter - The user voting
-   * @returns Boolean indicating if the vote was added (true) or removed (false)
+   * @returns Object with voteAdded (true if added, false if removed) and updated voteCount
    * @throws {NotFoundError} When the feature does not exist
    * @throws {ConflictError} When the database operation fails
    */
-  toggleVote(featureId: string, voter: string): Promise<boolean>;
+  toggleVote(
+    featureId: string,
+    voter: string,
+  ): Promise<{ voteAdded: boolean; voteCount: number }>;
 
   /**
    * Get the vote count for a feature

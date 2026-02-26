@@ -22,6 +22,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
@@ -123,7 +124,9 @@ export const FeatureDetailsDrawer = ({
   useEffect(() => {
     if (error) {
       alertApi.post({
-        message: `Failed to load feature: ${(error as Error).message}`,
+        message: `Failed to load feature: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         severity: 'error',
         display: 'transient',
       });
@@ -135,7 +138,9 @@ export const FeatureDetailsDrawer = ({
     if (updateError) {
       alertApi.post({
         message: `Failed to update feature status: ${
-          (updateError as Error).message
+          updateError instanceof Error
+            ? updateError.message
+            : String(updateError)
         }`,
         severity: 'error',
         display: 'transient',
@@ -175,7 +180,9 @@ export const FeatureDetailsDrawer = ({
     if (error) {
       return (
         <Box p={3}>
-          <ResponseErrorPanel error={error as Error} />
+          <ResponseErrorPanel
+            error={error instanceof Error ? error : new Error(String(error))}
+          />
         </Box>
       );
     }
@@ -217,15 +224,10 @@ export const FeatureDetailsDrawer = ({
                 </Typography>
                 <Typography variant="body2" className={classes.metaValue}>
                   <EntityDisplayName
-                    entityRef={{
-                      kind: feature.author.split(':')[0],
-                      namespace: feature.author.includes('/')
-                        ? feature.author.split('/')[0].split(':')[1]
-                        : 'default',
-                      name: feature.author.includes('/')
-                        ? feature.author.split('/')[1]
-                        : feature.author.split(':')[1],
-                    }}
+                    entityRef={parseEntityRef(feature.author, {
+                      defaultKind: 'user',
+                      defaultNamespace: 'default',
+                    })}
                     defaultKind="user"
                   />
                 </Typography>
