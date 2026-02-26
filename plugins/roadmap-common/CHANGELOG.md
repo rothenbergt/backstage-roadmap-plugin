@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap-common
 
+## 0.3.0
+
+### Minor Changes
+
+- 565cb1f: Upgrade Backstage from 1.44.1 to 1.48.3 and migrate to the new frontend system
+
 ## 0.2.0
 
 ### Minor Changes
