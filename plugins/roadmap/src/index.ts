@@ -1,1 +1,1 @@
-export { roadmapPlugin, RoadmapPage } from './plugin';
+export { roadmapPlugin as default } from './plugin';
