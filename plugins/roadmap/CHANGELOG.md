@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap
 
+## 1.0.1
+
+### Patch Changes
+
+- 332d130: Fix route ordering bug, input validation, error handling, and type safety improvements
+
 ## 1.0.0
 
 ### Major Changes
