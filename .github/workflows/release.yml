@@ -37,7 +37,7 @@ jobs:
         id: changesets
         uses: backstage/changesets-action@v2.3.1
         with:
-          version: yarn changeset version
+          version: yarn changeset version && yarn install
           publish: yarn release
           title: 'chore: version packages'
           commit: 'chore: version packages'
