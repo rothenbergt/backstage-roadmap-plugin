@@ -12,10 +12,10 @@ const queryClient = new QueryClient({
   },
 });
 
-export const WrappedRoadmapComponent = (props: any) => {
+export const WrappedRoadmapComponent = () => {
   return createElement(
     QueryClientProvider,
     { client: queryClient },
-    createElement(RoadmapBoard, props),
+    createElement(RoadmapBoard),
   );
 };

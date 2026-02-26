@@ -50,7 +50,9 @@ export const CreateFeatureModal = ({
   useEffect(() => {
     if (error) {
       alertApi.post({
-        message: `Failed to create feature: ${(error as Error).message}`,
+        message: `Failed to create feature: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         severity: 'error',
         display: 'transient',
       });

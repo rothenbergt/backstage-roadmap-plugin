@@ -16,6 +16,60 @@ export function votesRouter(options: RouterOptions): express.Router {
   const voteService = new VoteService(db, logger);
   const permissionService = new PermissionService(options);
 
+  // Get vote counts for multiple features
+  router.get('/counts', async (req, res, next) => {
+    try {
+      const idsParam = req.query.ids;
+
+      // Handle empty parameter case gracefully
+      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
+        res.json({});
+        return;
+      }
+
+      const featureIds = idsParam.split(',').filter(Boolean);
+
+      if (featureIds.length === 0) {
+        res.json({});
+        return;
+      }
+
+      const voteCounts = await voteService.getVoteCounts(featureIds);
+      res.json(voteCounts);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Check if user has voted on multiple features (batch)
+  router.get('/user/batch', async (req, res, next) => {
+    try {
+      const idsParam = req.query.ids;
+
+      // Handle empty parameter case gracefully
+      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
+        res.json({});
+        return;
+      }
+
+      const featureIds = idsParam.split(',').filter(Boolean);
+
+      if (featureIds.length === 0) {
+        res.json({});
+        return;
+      }
+
+      const username = await permissionService.getUsername(req);
+      const hasVotedMap = await voteService.hasVotedBatch(featureIds, username);
+
+      res.json(hasVotedMap);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // --- Parameterized routes below ---
+
   // Toggle vote for a feature
   router.post('/:featureId', async (req, res, next) => {
     try {
@@ -26,13 +80,9 @@ export function votesRouter(options: RouterOptions): express.Router {
       }
 
       const username = await permissionService.getUsername(req);
-      const voteAdded = await voteService.toggleVote(featureId, username);
-      const newVoteCount = await voteService.getVoteCount(featureId);
+      const result = await voteService.toggleVote(featureId, username);
 
-      res.status(200).json({
-        voteAdded,
-        voteCount: newVoteCount,
-      });
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
@@ -54,31 +104,6 @@ export function votesRouter(options: RouterOptions): express.Router {
     }
   });
 
-  // Get vote counts for multiple features
-  router.get('/counts', async (req, res, next) => {
-    try {
-      const idsParam = req.query.ids;
-
-      // Handle empty parameter case gracefully
-      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
-        res.json({});
-        return;
-      }
-
-      const featureIds = idsParam.split(',');
-
-      if (featureIds.length === 0) {
-        res.json({});
-        return;
-      }
-
-      const voteCounts = await voteService.getVoteCounts(featureIds);
-      res.json(voteCounts);
-    } catch (error) {
-      next(error);
-    }
-  });
-
   // Check if a user has voted on a feature
   router.get('/:featureId/user', async (req, res, next) => {
     try {
@@ -92,36 +117,6 @@ export function votesRouter(options: RouterOptions): express.Router {
       const hasVoted = await voteService.hasVoted(featureId, username);
 
       res.json(hasVoted);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Check if user has voted on multiple features (batch)
-  router.get('/user/batch', async (req, res, next) => {
-    try {
-      const idsParam = req.query.ids;
-
-      // Handle empty parameter case gracefully
-      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
-        res.json({});
-        return;
-      }
-
-      const featureIds = idsParam.split(',');
-
-      if (featureIds.length === 0) {
-        res.json({});
-        return;
-      }
-
-      const username = await permissionService.getUsername(req);
-      const hasVotedMap = await voteService.hasVotedBatch(
-        featureIds,
-        username,
-      );
-
-      res.json(hasVotedMap);
     } catch (error) {
       next(error);
     }

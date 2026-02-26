@@ -28,6 +28,14 @@ export interface FeatureServiceInterface {
   getAllFeatures(): Promise<Feature[]>;
 
   /**
+   * Get a single feature by ID
+   *
+   * @throws {NotFoundError} When the feature doesn't exist
+   * @throws {ConflictError} When the database operation fails
+   */
+  getFeatureById(id: string): Promise<Feature>;
+
+  /**
    * Add a new feature
    *
    * @throws {InputError} When validation fails
@@ -77,7 +85,10 @@ export interface VoteServiceInterface {
    * @throws {NotFoundError} When the feature doesn't exist
    * @throws {ConflictError} When the database operation fails
    */
-  toggleVote(featureId: string, voter: string): Promise<boolean>;
+  toggleVote(
+    featureId: string,
+    voter: string,
+  ): Promise<{ voteAdded: boolean; voteCount: number }>;
 
   /**
    * Get vote count for a feature

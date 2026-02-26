@@ -14,7 +14,10 @@ import {
 } from '@backstage/core-components';
 import { Typography, Box, Paper, alpha } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
+import {
+  Feature,
+  FeatureStatus,
+} from '@rothenbergt/backstage-plugin-roadmap-common';
 import LightbulbIcon from '@material-ui/icons/EmojiObjects';
 import EventNoteIcon from '@material-ui/icons/EventNote';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
@@ -171,7 +174,7 @@ export const RoadmapBoard = () => {
       }
       acc[feature.status].push(feature);
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, (Feature & { hasVoted: boolean })[]>);
   }, [features]);
 
   // Handle feature selection
@@ -189,7 +192,11 @@ export const RoadmapBoard = () => {
   }
 
   if (error) {
-    return <ResponseErrorPanel error={error as Error} />;
+    return (
+      <ResponseErrorPanel
+        error={error instanceof Error ? error : new Error(String(error))}
+      />
+    );
   }
 
   return (

@@ -11,7 +11,10 @@ export class VoteService implements VoteServiceInterface {
     private readonly logger: LoggerService,
   ) {}
 
-  async toggleVote(featureId: string, voter: string): Promise<boolean> {
+  async toggleVote(
+    featureId: string,
+    voter: string,
+  ): Promise<{ voteAdded: boolean; voteCount: number }> {
     this.logger.info(`Toggling vote for feature ${featureId} by ${voter}`);
     return this.db.toggleVote(featureId, voter);
   }

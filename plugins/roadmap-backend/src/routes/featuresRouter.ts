@@ -5,7 +5,7 @@ import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { FeatureService } from '../services/FeatureService';
 import { PermissionService } from '../services/PermissionService';
 
-import { NotAllowedError } from '@backstage/errors';
+import { NotAllowedError, InputError } from '@backstage/errors';
 /**
  * Router for feature-related endpoints
  */
@@ -21,9 +21,19 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.post('/', async (req, res, next) => {
     try {
       const username = await permissionService.getUsername(req);
-      const newFeature = req.body;
+      const { title, description } = req.body;
 
-      const feature = await featureService.addFeature(newFeature, username);
+      if (!title || typeof title !== 'string') {
+        throw new InputError('Title is required');
+      }
+      if (!description || typeof description !== 'string') {
+        throw new InputError('Description is required');
+      }
+
+      const feature = await featureService.addFeature(
+        { title, description },
+        username,
+      );
       res.status(201).json(feature);
     } catch (error) {
       next(error);
@@ -55,7 +65,15 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.put('/:id/status', async (req, res, next) => {
     try {
       const { id } = req.params;
-      const status = req.body.status as FeatureStatus;
+      const { status } = req.body;
+
+      if (!status || !Object.values(FeatureStatus).includes(status)) {
+        throw new InputError(
+          `Invalid status. Must be one of: ${Object.values(FeatureStatus).join(
+            ', ',
+          )}`,
+        );
+      }
 
       const username = await permissionService.getUsername(req);
       const isAdmin = await permissionService.isRoadmapAdmin(req, username);
