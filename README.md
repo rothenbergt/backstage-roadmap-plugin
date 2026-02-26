@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/@rothenbergt/backstage-plugin-roadmap-backend?label=roadmap-backend)](https://www.npmjs.com/package/@rothenbergt/backstage-plugin-roadmap-backend)
 [![CI](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Backstage](https://img.shields.io/badge/Backstage-1.43.3-brightgreen.svg)](https://backstage.io)
+[![Backstage](https://img.shields.io/badge/Backstage-1.48.3-brightgreen.svg)](https://backstage.io)
 [![Node](https://img.shields.io/badge/node-18%20%7C%2020%20%7C%2022-blue.svg)](https://nodejs.org)
 
 ## 🌟 Overview
@@ -51,15 +51,7 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
    backend.add(import('@rothenbergt/backstage-plugin-roadmap-backend'));
    ```
 
-3. Add the frontend plugin to your `packages/app/src/App.tsx`:
-   ```typescript
-   import { RoadmapPage } from '@rothenbergt/backstage-plugin-roadmap';
-   // ...
-   <FlatRoutes>
-     {/* ... */}
-     <Route path="/roadmap" element={<RoadmapPage />} />
-   </FlatRoutes>;
-   ```
+3. The frontend plugin uses the new Backstage frontend system and is automatically discovered. No additional wiring is needed in your app.
 
 ## 🖥️ Usage
 
