@@ -11,7 +11,7 @@
 
 The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence and puts them front and center. Teams can share what’s coming up, while users get to chime in by suggesting features, voting on ideas, and adding comments. It’s all about creating a space where feedback flows easily, and everyone helps shape the future of the platform together.
 
-🚀 **Note:** This plugin requires you to use the new Backstage backend system.
+🚀 **Note:** This plugin uses the new Backstage [frontend system](https://backstage.io/docs/frontend-system/) and the new [backend system](https://backstage.io/docs/backend-system/).
 
 ## 📸 Screenshots
 
