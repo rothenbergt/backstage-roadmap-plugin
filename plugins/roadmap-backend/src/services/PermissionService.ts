@@ -1,10 +1,13 @@
 import { Request } from 'express';
 import { PermissionServiceInterface } from './types';
 import { RouterOptions } from '../routes/router';
-import { roadmapAdminPermission } from '@rothenbergt/backstage-plugin-roadmap-common';
+import {
+  roadmapAdminPermission,
+  roadmapCreatePermission,
+} from '@rothenbergt/backstage-plugin-roadmap-common';
 import { BasicPermission } from '@backstage/plugin-permission-common';
 import { NotFoundError, NotAllowedError } from '@backstage/errors';
-import { getRoadmapBackendConfig } from '../config';
+import { getAdminUsers } from '../config';
 import {
   AuthorizeResult,
   DefinitivePolicyDecision,
@@ -42,10 +45,10 @@ export class PermissionService implements PermissionServiceInterface {
     permission: BasicPermission,
   ): Promise<boolean> {
     const { config, logger, permissions, httpAuth } = this.options;
-    const roadmapConfig = getRoadmapBackendConfig(config);
+    const adminUsers = getAdminUsers(config);
 
     // Admin users early exit
-    if (roadmapConfig.adminUsers.includes(username)) {
+    if (adminUsers.includes(username)) {
       return true;
     }
 
@@ -87,5 +90,9 @@ export class PermissionService implements PermissionServiceInterface {
 
   async isRoadmapAdmin(req: Request, username: string): Promise<boolean> {
     return this.checkPermission(req, username, roadmapAdminPermission);
+  }
+
+  async canCreateFeature(req: Request, username: string): Promise<boolean> {
+    return this.checkPermission(req, username, roadmapCreatePermission);
   }
 }

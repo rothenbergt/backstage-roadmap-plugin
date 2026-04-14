@@ -3,7 +3,10 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './routes';
+import { RoadmapDatasource } from './database/types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
+import { RoadmapGitlabClient } from './gitlab';
+import { getDatasource, getGitlabConfig, isPermissionEnabled } from './config';
 
 /**
  * Backend plugin for the Roadmap feature
@@ -34,13 +37,22 @@ export const roadmapPlugin = createBackendPlugin({
         permissions,
         cache,
       }) {
-        const db = await RoadmapDatabaseClient.create({
-          database,
-          logger,
-        });
+        const datasource = getDatasource(config);
+        const permissionEnabled = isPermissionEnabled(config);
 
-        const permissionEnabled =
-          config.getOptionalBoolean('permission.enabled') ?? false;
+        let db: RoadmapDatasource;
+        if (datasource === 'database') {
+          db = await RoadmapDatabaseClient.create({
+            database,
+            logger,
+          });
+        } else {
+          db = RoadmapGitlabClient.create({
+            gitlab: getGitlabConfig(config),
+            logger,
+            cache,
+          });
+        }
 
         if (!permissionEnabled) {
           logger.warn(

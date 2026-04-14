@@ -6,7 +6,7 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
-import { RoadmapDatabase } from './types';
+import { RoadmapDatasource } from '../types';
 import { LoggerService, DatabaseService } from '@backstage/backend-plugin-api';
 import { NotFoundError, ConflictError } from '@backstage/errors';
 import { resolvePackagePath } from '@backstage/backend-plugin-api';
@@ -17,9 +17,9 @@ const migrationsDir = resolvePackagePath(
 );
 
 /**
- * Implementation of the RoadmapDatabase interface using Knex
+ * Implementation of the RoadmapDatasource interface using Knex
  */
-export class RoadmapDatabaseClient implements RoadmapDatabase {
+export class RoadmapDatabaseClient implements RoadmapDatasource {
   static async create(options: {
     database: DatabaseService;
     logger: LoggerService;

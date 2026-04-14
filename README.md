@@ -34,6 +34,7 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 - 💬 Comment section for each feature
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
+- 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
 
 ## 🛠️ Installation
 
@@ -73,6 +74,37 @@ roadmap:
     - user:default/admin1
     - user:default/admin2
 ```
+
+## 🦊 (Optional) GitLab Integration
+
+By default, the plugin stores data in a plugin database. You can optionally use a GitLab project as the backend datasource, where roadmap features are stored as GitLab issues.
+
+### How It Works
+
+- Features are created as GitLab issues with a `roadmap` label
+- Feature status is tracked via scoped labels (e.g. `roadmap::Suggested`, `roadmap::In Progress`)
+- Votes and comments are stored as issue notes
+- All existing plugin functionality (voting, commenting, status management) works seamlessly through the GitLab API
+
+### Configuration
+
+Set the datasource to `gitlab` and provide your GitLab connection details in `app-config.yaml`:
+
+```yaml
+roadmap:
+  source: gitlab
+  gitlab:
+    apiBaseUrl: https://gitlab.com/api/v4
+    token: ${GITLAB_TOKEN}
+    projectId: 'your-group/your-project'
+```
+
+| Field               | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `source`            | Set to `gitlab` to enable the GitLab datasource (defaults to `database`)         |
+| `gitlab.apiBaseUrl` | Base URL for the GitLab API                                                      |
+| `gitlab.token`      | Personal access token with API access to the project                             |
+| `gitlab.projectId`  | GitLab project ID (numeric) or URL-encoded path (e.g. `your-group/your-project`) |
 
 ## 🤝 Contributing
 

@@ -1,0 +1,425 @@
+import { mockServices } from '@backstage/backend-test-utils';
+import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
+import { RoadmapGitlabClient } from './RoadmapGitlabClient';
+import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { CacheService } from '@backstage/backend-plugin-api';
+import { NotFoundError } from '@backstage/errors';
+
+const BASE_URL = 'https://gitlab.example.com/api/v4';
+const PROJECT_ID = '123';
+
+const makeIssue = (overrides: Record<string, any> = {}) => ({
+  iid: 1,
+  title: 'Test Feature',
+  description: 'A test feature',
+  labels: ['roadmap', 'roadmap::Suggested'],
+  upvotes: 0,
+  author: { username: 'funcuser' },
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
+
+const makeNote = (overrides: Record<string, any> = {}) => ({
+  id: 100,
+  body: 'A comment',
+  system: false,
+  author: { username: 'funcuser' },
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
+
+function createMockCache(): CacheService & { store: Map<string, any> } {
+  const store = new Map<string, any>();
+  return {
+    store,
+    get: jest.fn(async (key: string) => store.get(key)),
+    set: jest.fn(async (key: string, value: any) => {
+      store.set(key, value);
+    }),
+    delete: jest.fn(async (key: string) => {
+      store.delete(key);
+    }),
+    withOptions: jest.fn().mockReturnThis(),
+  };
+}
+
+function createClient(cacheOverride?: CacheService): RoadmapGitlabClient {
+  return RoadmapGitlabClient.create({
+    gitlab: {
+      apiBaseUrl: BASE_URL,
+      token: 'test-token',
+      projectId: PROJECT_ID,
+    },
+    logger: mockServices.logger.mock(),
+    cache: cacheOverride ?? createMockCache(),
+  });
+}
+
+const notesUrl = (issueId: string | number) =>
+  `${BASE_URL}/projects/${PROJECT_ID}/issues/${issueId}/notes`;
+const issueUrl = (issueId: string | number) =>
+  `${BASE_URL}/projects/${PROJECT_ID}/issues/${issueId}`;
+const issuesUrl = `${BASE_URL}/projects/${PROJECT_ID}/issues`;
+
+const server = setupServer();
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+describe('RoadmapGitlabClient', () => {
+  describe('addFeature', () => {
+    it('creates a GitLab issue with roadmap labels', async () => {
+      const client = createClient();
+
+      server.use(http.post(issuesUrl, () => HttpResponse.json(makeIssue())));
+
+      const feature = await client.addFeature({
+        title: 'Test Feature',
+        description: 'A test feature',
+        author: 'user:default/jdoe',
+      });
+
+      expect(feature.id).toBe('1');
+      expect(feature.title).toBe('Test Feature');
+      expect(feature.status).toBe(FeatureStatus.Suggested);
+    });
+  });
+
+  describe('getAllFeatures', () => {
+    it('returns features with vote counts from note markers', async () => {
+      const client = createClient();
+      const issues = [makeIssue({ iid: 1 }), makeIssue({ iid: 2 })];
+
+      server.use(
+        http.get(issuesUrl, () =>
+          HttpResponse.json(issues, {
+            headers: { 'x-next-page': '' },
+          }),
+        ),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [makeNote({ id: 10, body: '<!-- vote:alice -->' })],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+        http.get(notesUrl(2), () =>
+          HttpResponse.json(
+            [
+              makeNote({ id: 20, body: '<!-- vote:alice -->' }),
+              makeNote({ id: 21, body: '<!-- vote:bob -->' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+      );
+
+      const features = await client.getAllFeatures();
+
+      expect(features).toHaveLength(2);
+      expect(features.find(f => f.id === '1')?.votes).toBe(1);
+      expect(features.find(f => f.id === '2')?.votes).toBe(2);
+    });
+  });
+
+  describe('getFeatureById', () => {
+    it('returns a single feature with vote count', async () => {
+      const client = createClient();
+
+      server.use(
+        http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
+      );
+
+      const feature = await client.getFeatureById('1');
+
+      expect(feature.id).toBe('1');
+      expect(feature.votes).toBe(0);
+    });
+
+    it('throws NotFoundError for non-existent feature', async () => {
+      const client = createClient();
+
+      server.use(
+        http.get(
+          issueUrl(999),
+          () => new HttpResponse('Not found', { status: 404 }),
+        ),
+      );
+
+      await expect(client.getFeatureById('999')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('updateFeatureStatus', () => {
+    it('replaces status label on the issue', async () => {
+      const client = createClient();
+      let updatedLabels: string | undefined;
+
+      server.use(
+        http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
+        http.put(issueUrl(1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          updatedLabels = body.labels;
+          return HttpResponse.json(
+            makeIssue({ labels: ['roadmap', 'roadmap::Planned'] }),
+          );
+        }),
+      );
+
+      const feature = await client.updateFeatureStatus(
+        '1',
+        FeatureStatus.Planned,
+      );
+
+      expect(feature.status).toBe(FeatureStatus.Planned);
+      expect(updatedLabels).toContain('roadmap::Planned');
+      expect(updatedLabels).not.toContain('roadmap::Suggested');
+    });
+  });
+
+  describe('addComment', () => {
+    it('embeds author tag in note body when author is provided', async () => {
+      const client = createClient();
+      let postedBody: string | undefined;
+
+      server.use(
+        http.post(notesUrl(1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          postedBody = body.body;
+          return HttpResponse.json(makeNote({ id: 200, body: body.body }));
+        }),
+      );
+
+      const comment = await client.addComment({
+        featureId: '1',
+        text: 'Great idea!',
+        author: 'user:default/jdoe',
+      });
+
+      expect(postedBody).toBe('<!-- author:jdoe -->\nGreat idea!');
+      expect(comment.author).toBe('jdoe');
+      expect(comment.text).toBe('Great idea!');
+    });
+
+    it('does not embed author tag when author is not provided', async () => {
+      const client = createClient();
+      let postedBody: string | undefined;
+
+      server.use(
+        http.post(notesUrl(1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          postedBody = body.body;
+          return HttpResponse.json(makeNote({ id: 201, body: body.body }));
+        }),
+      );
+
+      const comment = await client.addComment({
+        featureId: '1',
+        text: 'Anonymous comment',
+      });
+
+      expect(postedBody).toBe('Anonymous comment');
+      expect(comment.author).toBe('funcuser');
+    });
+  });
+
+  describe('getCommentsByFeatureId', () => {
+    it('filters out system notes and vote markers', async () => {
+      const client = createClient();
+
+      server.use(
+        http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [
+              makeNote({ id: 1, body: '<!-- author:jdoe -->\nReal comment' }),
+              makeNote({ id: 2, body: '<!-- vote:alice -->' }),
+              makeNote({ id: 3, body: 'System note', system: true }),
+              makeNote({ id: 4, body: 'Plain comment' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+      );
+
+      const comments = await client.getCommentsByFeatureId('1');
+
+      expect(comments).toHaveLength(2);
+      expect(comments[0].id).toBe('1');
+      expect(comments[0].author).toBe('jdoe');
+      expect(comments[0].text).toBe('Real comment');
+      expect(comments[1].id).toBe('4');
+      expect(comments[1].text).toBe('Plain comment');
+    });
+  });
+
+  describe('toggleVote', () => {
+    it('adds a vote when user has not voted', async () => {
+      const cache = createMockCache();
+      const client = createClient(cache);
+      let postedBody: string | undefined;
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
+        http.post(notesUrl(1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          postedBody = body.body;
+          return HttpResponse.json(makeNote({ id: 300, body: body.body }));
+        }),
+      );
+
+      const result = await client.toggleVote('1', 'user:default/jdoe');
+
+      expect(result.voteAdded).toBe(true);
+      expect(result.voteCount).toBe(1);
+      expect(postedBody).toBe('<!-- vote:jdoe -->');
+    });
+
+    it('removes a vote when user has already voted', async () => {
+      const cache = createMockCache();
+      const client = createClient(cache);
+      let deletedPath: string | undefined;
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [makeNote({ id: 300, body: '<!-- vote:jdoe -->' })],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+        http.delete(`${notesUrl(1)}/:noteId`, ({ params }) => {
+          deletedPath = params.noteId as string;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      const result = await client.toggleVote('1', 'user:default/jdoe');
+
+      expect(result.voteAdded).toBe(false);
+      expect(result.voteCount).toBe(0);
+      expect(deletedPath).toBe('300');
+    });
+
+    it('invalidates cache before toggling and re-caches after', async () => {
+      const cache = createMockCache();
+      const client = createClient(cache);
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
+        http.post(notesUrl(1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          return HttpResponse.json(makeNote({ id: 400, body: body.body }));
+        }),
+      );
+
+      await client.toggleVote('1', 'user:default/jdoe');
+
+      expect(cache.delete).toHaveBeenCalledWith('roadmap:votes:1');
+      expect(cache.set).toHaveBeenCalledWith(
+        'roadmap:votes:1',
+        { jdoe: 0 },
+        { ttl: 30000 },
+      );
+    });
+  });
+
+  describe('getVoteCount', () => {
+    it('returns count from cache when available', async () => {
+      const cache = createMockCache();
+      cache.store.set('roadmap:votes:1', { alice: 10, bob: 20 });
+      const client = createClient(cache);
+
+      const count = await client.getVoteCount('1');
+
+      expect(count).toBe(2);
+    });
+
+    it('fetches from GitLab when cache is empty', async () => {
+      const cache = createMockCache();
+      const client = createClient(cache);
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [
+              makeNote({ id: 10, body: '<!-- vote:alice -->' }),
+              makeNote({ id: 11, body: '<!-- vote:bob -->' }),
+              makeNote({ id: 12, body: 'regular comment' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+      );
+
+      const count = await client.getVoteCount('1');
+
+      expect(count).toBe(2);
+      expect(cache.set).toHaveBeenCalledWith(
+        'roadmap:votes:1',
+        { alice: 10, bob: 11 },
+        { ttl: 30000 },
+      );
+    });
+  });
+
+  describe('hasVoted', () => {
+    it('returns true when user has a vote marker', async () => {
+      const cache = createMockCache();
+      cache.store.set('roadmap:votes:1', { jdoe: 10 });
+      const client = createClient(cache);
+
+      const result = await client.hasVoted('1', 'user:default/jdoe');
+
+      expect(result).toBe(true);
+    });
+
+    it('returns false when user has no vote marker', async () => {
+      const cache = createMockCache();
+      cache.store.set('roadmap:votes:1', { alice: 10 });
+      const client = createClient(cache);
+
+      const result = await client.hasVoted('1', 'user:default/jdoe');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('hasVotedBatch', () => {
+    it('returns vote status for multiple features', async () => {
+      const cache = createMockCache();
+      cache.store.set('roadmap:votes:1', { jdoe: 10 });
+      cache.store.set('roadmap:votes:2', { alice: 20 });
+      const client = createClient(cache);
+
+      const result = await client.hasVotedBatch(
+        ['1', '2'],
+        'user:default/jdoe',
+      );
+
+      expect(result).toEqual({ '1': true, '2': false });
+    });
+  });
+
+  describe('getVoteCounts', () => {
+    it('returns counts for multiple features', async () => {
+      const cache = createMockCache();
+      cache.store.set('roadmap:votes:1', { alice: 10 });
+      cache.store.set('roadmap:votes:2', { alice: 20, bob: 21 });
+      const client = createClient(cache);
+
+      const result = await client.getVoteCounts(['1', '2']);
+
+      expect(result).toEqual({ '1': 1, '2': 2 });
+    });
+  });
+});

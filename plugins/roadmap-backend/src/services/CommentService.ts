@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { RoadmapDatabase } from '../database/types';
+import { RoadmapDatasource } from '../database/types';
 import { CommentServiceInterface } from './types';
 import {
   Comment,
@@ -12,7 +12,7 @@ import { InputError } from '@backstage/errors';
  */
 export class CommentService implements CommentServiceInterface {
   constructor(
-    private readonly db: RoadmapDatabase,
+    private readonly db: RoadmapDatasource,
     private readonly logger: LoggerService,
   ) {}
 
