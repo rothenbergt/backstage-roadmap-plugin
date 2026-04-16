@@ -3,7 +3,7 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './routes';
-import { RoadmapDatasource } from './database/types';
+import { RoadmapDatasource } from './types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
 import { RoadmapGitlabClient } from './gitlab';
 import { getDatasource, getGitlabConfig, isPermissionEnabled } from './config';

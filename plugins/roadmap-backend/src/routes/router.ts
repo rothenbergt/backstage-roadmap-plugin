@@ -3,7 +3,7 @@ import { CacheService, LoggerService } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import express from 'express';
 import Router from 'express-promise-router';
-import { RoadmapDatasource } from '../database/types';
+import { RoadmapDatasource } from '../types';
 import {
   HttpAuthService,
   UserInfoService,

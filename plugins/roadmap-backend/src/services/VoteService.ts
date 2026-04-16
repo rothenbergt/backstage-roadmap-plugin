@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { RoadmapDatasource } from '../database/types';
+import { RoadmapDatasource } from '../types';
 import { VoteServiceInterface } from './types';
 
 /**

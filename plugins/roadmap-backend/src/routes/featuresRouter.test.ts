@@ -5,7 +5,7 @@ import { AddressInfo } from 'net';
 import { setupServer } from 'msw/node';
 import { featuresRouter } from './featuresRouter';
 import { RouterOptions } from './router';
-import { RoadmapDatasource } from '../database/types';
+import { RoadmapDatasource } from '../types';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { ConfigReader } from '@backstage/config';
 import {
