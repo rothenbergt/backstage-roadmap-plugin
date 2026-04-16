@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { RoadmapDatabase } from '../database/types';
+import { RoadmapDatasource } from '../types';
 import { VoteServiceInterface } from './types';
 
 /**
@@ -7,7 +7,7 @@ import { VoteServiceInterface } from './types';
  */
 export class VoteService implements VoteServiceInterface {
   constructor(
-    private readonly db: RoadmapDatabase,
+    private readonly db: RoadmapDatasource,
     private readonly logger: LoggerService,
   ) {}
 

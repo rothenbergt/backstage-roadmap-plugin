@@ -21,6 +21,12 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.post('/', async (req, res, next) => {
     try {
       const username = await permissionService.getUsername(req);
+      const canCreate = await permissionService.canCreateFeature(req, username);
+      if (!canCreate) {
+        throw new NotAllowedError(
+          'User does not have permission to create features',
+        );
+      }
       const { title, description } = req.body;
 
       if (!title || typeof title !== 'string') {

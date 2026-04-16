@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { RoadmapDatabase } from '../database/types';
+import { RoadmapDatasource } from '../types';
 import { FeatureServiceInterface } from './types';
 import {
   Feature,
@@ -13,7 +13,7 @@ import { InputError } from '@backstage/errors';
  */
 export class FeatureService implements FeatureServiceInterface {
   constructor(
-    private readonly db: RoadmapDatabase,
+    private readonly db: RoadmapDatasource,
     private readonly logger: LoggerService,
   ) {}
 

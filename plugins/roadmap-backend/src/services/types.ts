@@ -146,6 +146,13 @@ export interface PermissionServiceInterface {
   isRoadmapAdmin(req: Request, username: string): Promise<boolean>;
 
   /**
+   * Check if a user can create features
+   *
+   * @throws {NotAllowedError} When the permission check fails
+   */
+  canCreateFeature(req: Request, username: string): Promise<boolean>;
+
+  /**
    * Get the authenticated username from a request
    *
    * @throws {NotAllowedError} When the user is not authenticated

@@ -7,16 +7,31 @@ import {
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 
 /**
- * Interface for the Roadmap database operations
+ * Configuration for the GitLab datasource
  */
-export interface RoadmapDatabase {
+export interface GitlabConfig {
+  /** Base URL for the GitLab API (e.g. https://gitlab.com/api/v4) */
+  apiBaseUrl: string;
+  /** Personal access token for GitLab API authentication */
+  token: string;
+  /** GitLab project ID or URL-encoded path */
+  projectId: string;
+}
+
+/** Supported datasource backends for the roadmap plugin */
+export type DatasourceType = 'database' | 'gitlab';
+
+/**
+ * Interface for the Roadmap datasource operations
+ */
+export interface RoadmapDatasource {
   /**
    * Add a comment to a feature
    *
    * @param comment - The comment to add
    * @returns The created comment
    * @throws {NotFoundError} When the referenced feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   addComment(comment: NewComment): Promise<Comment>;
 
@@ -26,7 +41,7 @@ export interface RoadmapDatabase {
    * @param featureId - The ID of the feature
    * @returns Array of comments
    * @throws {NotFoundError} When the feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   getCommentsByFeatureId(featureId: string): Promise<Comment[]>;
 
@@ -35,7 +50,7 @@ export interface RoadmapDatabase {
    *
    * @param feature - The feature to add
    * @returns The created feature
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   addFeature(feature: NewFeature & { author: string }): Promise<Feature>;
 
@@ -43,7 +58,7 @@ export interface RoadmapDatabase {
    * Get all features
    *
    * @returns Array of all features
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   getAllFeatures(): Promise<Feature[]>;
 
@@ -53,7 +68,7 @@ export interface RoadmapDatabase {
    * @param id - The ID of the feature
    * @returns The feature
    * @throws {NotFoundError} When the feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   getFeatureById(id: string): Promise<Feature>;
 
@@ -64,7 +79,7 @@ export interface RoadmapDatabase {
    * @param status - The new status
    * @returns The updated feature
    * @throws {NotFoundError} When the feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
 
@@ -75,7 +90,7 @@ export interface RoadmapDatabase {
    * @param voter - The user voting
    * @returns Object with voteAdded (true if added, false if removed) and updated voteCount
    * @throws {NotFoundError} When the feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   toggleVote(
     featureId: string,
@@ -88,7 +103,7 @@ export interface RoadmapDatabase {
    * @param featureId - The ID of the feature
    * @returns The number of votes
    * @throws {NotFoundError} When the feature does not exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   getVoteCount(featureId: string): Promise<number>;
 
@@ -97,7 +112,7 @@ export interface RoadmapDatabase {
    *
    * @param featureIds - Array of feature IDs
    * @returns Object mapping feature IDs to vote counts
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   getVoteCounts(featureIds: string[]): Promise<Record<string, number>>;
 
@@ -107,7 +122,7 @@ export interface RoadmapDatabase {
    * @param featureId - The ID of the feature
    * @param voter - The user
    * @returns Boolean indicating if the user has voted
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
 
@@ -117,7 +132,7 @@ export interface RoadmapDatabase {
    * @param featureIds - Array of feature IDs
    * @param voter - The user
    * @returns Object mapping feature IDs to boolean (has voted)
-   * @throws {ConflictError} When the database operation fails
+   * @throws {ConflictError} When the datasource operation fails
    */
   hasVotedBatch(
     featureIds: string[],

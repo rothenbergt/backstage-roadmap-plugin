@@ -4,11 +4,7 @@ import {
   FetchApi,
   IdentityApi,
 } from '@backstage/core-plugin-api';
-import {
-  NotFoundError,
-  ConflictError,
-  InputError,
-} from '@backstage/errors';
+import { NotFoundError, ConflictError, InputError } from '@backstage/errors';
 import {
   Feature,
   NewFeature,
@@ -149,7 +145,9 @@ export class RoadmapApiClient implements RoadmapApi {
         case 409:
           throw new ConflictError(errorText || 'Conflict occurred');
         default:
-          throw new Error(`${response.status}: ${errorText || 'Unknown error'}`);
+          throw new Error(
+            `${response.status}: ${errorText || 'Unknown error'}`,
+          );
       }
     }
 
@@ -211,9 +209,7 @@ export class RoadmapApiClient implements RoadmapApi {
     return this.fetch<boolean>(`/votes/${featureId}/user`);
   }
 
-  async hasVotedBatch(
-    featureIds: string[],
-  ): Promise<Record<string, boolean>> {
+  async hasVotedBatch(featureIds: string[]): Promise<Record<string, boolean>> {
     if (featureIds.length === 0) {
       return {};
     }
