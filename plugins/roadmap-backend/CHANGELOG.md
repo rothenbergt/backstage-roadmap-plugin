@@ -1,5 +1,14 @@
 # @rothenbergt/backstage-plugin-roadmap-backend
 
+## 0.4.0
+
+### Minor Changes
+
+- 6890a7b: Add optional GitLab datasource integration and permission-gated feature creation. The backend now supports
+  roadmap.source: gitlab configuration to store roadmap features as GitLab issues. A new roadmapCreatePermission is
+  enforced on both the backend route and the frontend create button. The RoadmapDatabase interface has been renamed to
+  RoadmapDatasource to reflect the pluggable backend design.
+
 ## 0.3.1
 
 ### Patch Changes
