@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap
 
+## 1.1.1
+
+### Patch Changes
+
+- 843f233: **Patch (non-breaking):** Fix roadmap feature date display when the API returns ISO 8601 timestamps from PostgreSQL (`pg`). The UI previously appended `Z` unconditionally, which broke ISO strings and showed "Invalid Date". Legacy SQL-style UTC strings (`YYYY-MM-DD HH:MM:SS`) remain supported; public exports and behavior are otherwise unchanged.
+
 ## 1.1.0
 
 ### Minor Changes
