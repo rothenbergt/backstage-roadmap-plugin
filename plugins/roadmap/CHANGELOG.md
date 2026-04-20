@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap
 
+## 1.2.0
+
+### Minor Changes
+
+- d947269: Added markdown rendering support for feature descriptions and comments
+
 ## 1.1.1
 
 ### Patch Changes
