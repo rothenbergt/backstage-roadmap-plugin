@@ -12,7 +12,7 @@ import {
   CircularProgress,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { Progress } from '@backstage/core-components';
+import { MarkdownContent, Progress } from '@backstage/core-components';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
@@ -79,6 +79,9 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(1),
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
+    '& p': {
+      margin: 0,
+    },
   },
   characterCounter: {
     position: 'absolute',
@@ -244,9 +247,9 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
                 </Box>
               </Box>
 
-              <Typography variant="body2" className={classes.commentText}>
-                {comment.text}
-              </Typography>
+              <div className={classes.commentText}>
+                <MarkdownContent content={comment.text} />
+              </div>
             </Paper>
           ))}
         </List>

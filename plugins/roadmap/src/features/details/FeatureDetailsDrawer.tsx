@@ -23,7 +23,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import {
+  MarkdownContent,
+  Progress,
+  ResponseErrorPanel,
+} from '@backstage/core-components';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 
@@ -55,6 +59,9 @@ const useStyles = makeStyles(theme => ({
   description: {
     marginBottom: theme.spacing(3),
     whiteSpace: 'pre-wrap',
+    '& p': {
+      margin: 0,
+    },
   },
   metaRow: {
     display: 'flex',
@@ -212,9 +219,9 @@ export const FeatureDetailsDrawer = ({
             {feature.title}
           </Typography>
 
-          <Typography variant="body1" className={classes.description}>
-            {feature.description}
-          </Typography>
+          <div className={classes.description}>
+            <MarkdownContent content={feature.description} />
+          </div>
 
           <Grid container spacing={2} className={classes.metaRow}>
             <Grid item xs={6}>
