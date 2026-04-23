@@ -27,6 +27,7 @@ const VOTE_TAG_RE = /^<!-- vote:(\S+) -->$/;
 
 interface GitLabIssue {
   iid: number;
+  project_id?: number;
   title: string;
   description?: string;
   labels?: string[];
@@ -161,6 +162,11 @@ function buildNewRoadmapIssuePayload(feature: NewFeature): string {
 }
 
 const VOTE_CACHE_TTL_MS = 30_000; // 30 seconds
+const PROJECT_MAP_CACHE_TTL_MS = 300_000; // 5 minutes
+
+function issueProjectCacheKey(issueIid: string): string {
+  return `roadmap:issue-project:${issueIid}`;
+}
 
 function voteCacheKey(featureId: string): string {
   return `roadmap:votes:${featureId}`;
@@ -177,7 +183,9 @@ function jsonToVoteMap(json: Record<string, number>): Map<string, number> {
 export class RoadmapGitlabClient implements RoadmapDatasource {
   private readonly baseUrl: string;
   private readonly token: string;
-  private readonly projectId: string;
+  private readonly projectId?: string;
+  private readonly groupId?: string;
+  private readonly defaultProjectId?: string;
   private readonly logger: LoggerService;
   private readonly cache: CacheService;
 
@@ -212,28 +220,84 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     return new RoadmapGitlabClient(
       gitlab.apiBaseUrl,
       gitlab.token,
-      gitlab.projectId,
       logger,
       cache,
+      gitlab.projectId,
+      gitlab.groupId,
+      gitlab.defaultProjectId,
     );
   }
 
   private constructor(
     baseUrl: string,
     token: string,
-    projectId: string,
     logger: LoggerService,
     cache: CacheService,
+    projectId?: string,
+    groupId?: string,
+    defaultProjectId?: string,
   ) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.token = token;
-    this.projectId = encodeURIComponent(projectId);
+    this.projectId = projectId ? encodeURIComponent(projectId) : undefined;
+    this.groupId = groupId ? encodeURIComponent(groupId) : undefined;
+    this.defaultProjectId = defaultProjectId
+      ? encodeURIComponent(defaultProjectId)
+      : undefined;
     this.logger = logger;
     this.cache = cache;
   }
 
-  private projectApiUrl(path: string): string {
-    return `${this.baseUrl}/projects/${this.projectId}${path}`;
+  private get isGroupMode(): boolean {
+    return !!this.groupId;
+  }
+
+  private projectApiUrl(path: string, projectId?: string): string {
+    const pid = projectId ?? this.projectId;
+    if (!pid) {
+      throw new Error('projectId is required for this operation');
+    }
+    return `${this.baseUrl}/projects/${pid}${path}`;
+  }
+
+  private groupApiUrl(path: string): string {
+    return `${this.baseUrl}/groups/${this.groupId}${path}`;
+  }
+
+  /**
+   * Resolves the encoded project ID for a given issue iid.
+   * In project mode, returns the configured projectId.
+   * In group mode, looks up the cached mapping from group issue responses.
+   */
+  private async resolveProjectId(issueIid: string): Promise<string> {
+    if (!this.isGroupMode) return this.projectId!;
+    const pid = await this.cache.get<string>(issueProjectCacheKey(issueIid));
+    if (!pid) {
+      throw new NotFoundError(
+        `No cached project mapping for issue ${issueIid}. Fetch all features first.`,
+      );
+    }
+    return pid;
+  }
+
+  private async hasIssueProjectCached(issueIid: string): Promise<boolean> {
+    const pid = await this.cache.get<string>(issueProjectCacheKey(issueIid));
+    return !!pid;
+  }
+
+  /** Caches the project_id for issues returned from group-level queries. */
+  private async cacheIssueProjects(issues: GitLabIssue[]): Promise<void> {
+    await Promise.all(
+      issues
+        .filter(issue => issue.project_id)
+        .map(issue =>
+          this.cache.set(
+            issueProjectCacheKey(String(issue.iid)),
+            String(issue.project_id),
+            { ttl: PROJECT_MAP_CACHE_TTL_MS },
+          ),
+        ),
+    );
   }
 
   private authHeaders(): Record<string, string> {
@@ -243,12 +307,18 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     };
   }
 
+  private async ensureIssueProjectCached(featureId: string): Promise<void> {
+    if (this.isGroupMode && !(await this.hasIssueProjectCached(featureId))) {
+      await this.fetchAllRoadmapIssues();
+    }
+  }
+
   private async callGitLabApi<T>(
     url: string,
     init?: { method?: string; body?: string },
   ): Promise<{ data: T; res: Response }> {
     const method = init?.method ?? 'GET';
-    this.logger.debug(`GitLab API request: ${method} ${sanitizeLog(url)}`);
+    this.logger.info(`GitLab API request: ${method} ${sanitizeLog(url)}`);
     const res = await fetch(url, { ...init, headers: this.authHeaders() });
     if (!res.ok) {
       const text = await res.text();
@@ -290,19 +360,37 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   private async fetchAllRoadmapIssues(): Promise<GitLabIssue[]> {
-    return this.fetchAllPages<GitLabIssue>(this.roadmapIssuesUrl('desc'));
+    const issues = await this.fetchAllPages<GitLabIssue>(
+      this.roadmapIssuesUrl('desc'),
+    );
+    if (this.isGroupMode) await this.cacheIssueProjects(issues);
+    return issues;
   }
 
   private async fetchIssueById(id: string): Promise<GitLabIssue> {
+    const pid = await this.resolveProjectId(id);
     const { data } = await this.callGitLabApi<GitLabIssue>(
-      this.projectApiUrl(`/issues/${id}`),
+      this.projectApiUrl(`/issues/${id}`, pid),
     );
+    if (this.isGroupMode && data.project_id) {
+      await this.cache.set(
+        issueProjectCacheKey(String(data.iid)),
+        String(data.project_id),
+        { ttl: PROJECT_MAP_CACHE_TTL_MS },
+      );
+    }
     return data;
   }
 
   private async createRoadmapIssue(feature: NewFeature): Promise<GitLabIssue> {
+    if (this.isGroupMode && !this.defaultProjectId) {
+      throw new ConflictError(
+        'Creating features in group mode requires defaultProjectId to be configured',
+      );
+    }
+    const pid = this.isGroupMode ? this.defaultProjectId : this.projectId;
     const { data } = await this.callGitLabApi<GitLabIssue>(
-      this.projectApiUrl('/issues'),
+      this.projectApiUrl('/issues', pid),
       {
         method: 'POST',
         body: buildNewRoadmapIssuePayload(feature),
@@ -315,8 +403,9 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     id: string,
     labels: string[],
   ): Promise<GitLabIssue> {
+    const pid = await this.resolveProjectId(id);
     const { data } = await this.callGitLabApi<GitLabIssue>(
-      this.projectApiUrl(`/issues/${id}`),
+      this.projectApiUrl(`/issues/${id}`, pid),
       { method: 'PUT', body: JSON.stringify({ labels: labels.join(',') }) },
     );
     return data;
@@ -326,9 +415,11 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     featureId: string,
     sort: 'asc' | 'desc' = 'desc',
   ): Promise<GitLabNote[]> {
+    const pid = await this.resolveProjectId(featureId);
     return this.fetchAllPages<GitLabNote>(
       this.projectApiUrl(
         `/issues/${featureId}/notes?sort=${sort}&order_by=created_at&${PAGINATION}`,
+        pid,
       ),
     );
   }
@@ -347,8 +438,9 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   private async deleteNote(featureId: string, noteId: number): Promise<void> {
+    const pid = await this.resolveProjectId(featureId);
     await this.callGitLabApi<void>(
-      this.projectApiUrl(`/issues/${featureId}/notes/${noteId}`),
+      this.projectApiUrl(`/issues/${featureId}/notes/${noteId}`, pid),
       { method: 'DELETE' },
     );
   }
@@ -357,14 +449,16 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     featureId: string,
     body: string,
   ): Promise<GitLabNote> {
+    const pid = await this.resolveProjectId(featureId);
     const { data } = await this.callGitLabApi<GitLabNote>(
-      this.projectApiUrl(`/issues/${featureId}/notes`),
+      this.projectApiUrl(`/issues/${featureId}/notes`, pid),
       { method: 'POST', body: JSON.stringify({ body }) },
     );
     return data;
   }
 
   private async ensureFeatureExists(featureId: string): Promise<void> {
+    await this.ensureIssueProjectCached(featureId);
     await this.fetchIssueById(featureId);
   }
 
@@ -412,12 +506,14 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   private roadmapIssuesUrl(sort: 'asc' | 'desc' = 'desc'): string {
-    return this.projectApiUrl(
-      `/issues?labels=${ROADMAP_LABEL}&${PAGINATION}&order_by=created_at&sort=${sort}`,
-    );
+    const query = `/issues?labels=${ROADMAP_LABEL}&${PAGINATION}&order_by=created_at&sort=${sort}`;
+    return this.isGroupMode
+      ? this.groupApiUrl(query)
+      : this.projectApiUrl(query);
   }
 
   async addComment(comment: NewComment): Promise<Comment> {
+    await this.ensureIssueProjectCached(comment.featureId);
     const body = buildCommentBody(comment);
     const gitlabNote = await this.createNote(comment.featureId, body);
     return mapGitLabNoteToComment(gitlabNote, comment.featureId);
@@ -443,6 +539,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   async getFeatureById(id: string): Promise<Feature> {
+    await this.ensureIssueProjectCached(id);
     const gitlabIssue = await this.fetchIssueById(id);
     const voteCount = await this.getVoteCount(id);
     return mapGitLabIssueToFeature(gitlabIssue, voteCount);
@@ -452,6 +549,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     id: string,
     status: FeatureStatus,
   ): Promise<Feature> {
+    await this.ensureIssueProjectCached(id);
     const existingIssue = await this.fetchIssueById(id);
     const updatedLabels = replaceStatusLabels(
       existingIssue.labels ?? [],
@@ -465,6 +563,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     featureId: string,
     voter: string,
   ): Promise<{ voteAdded: boolean; voteCount: number }> {
+    await this.ensureIssueProjectCached(featureId);
     await this.invalidateCachedVotes(featureId);
     const username = parseUsernameFromEntityRef(voter);
     const votesByUser = await this.collectVoteMarkersByUser(featureId);
@@ -481,6 +580,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   async getVoteCount(featureId: string): Promise<number> {
+    await this.ensureIssueProjectCached(featureId);
     const votes = await this.getOrFetchVotes(featureId);
     return votes.size;
   }
@@ -494,6 +594,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   async hasVoted(featureId: string, voter: string): Promise<boolean> {
+    await this.ensureIssueProjectCached(featureId);
     const username = parseUsernameFromEntityRef(voter);
     const votes = await this.getOrFetchVotes(featureId);
     return votes.has(username);
