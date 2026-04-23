@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap-backend
 
+## 0.5.0
+
+### Minor Changes
+
+- 3f81184: Added GitLab group mode support. You can now use `groupId` instead of `projectId` to aggregate roadmap issues across all projects in a GitLab group. New features are created in the project specified by `defaultProjectId`.
+
 ## 0.4.0
 
 ### Minor Changes
