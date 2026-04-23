@@ -7,7 +7,8 @@ import {
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 
 /**
- * Configuration for the GitLab datasource
+ * Configuration for the GitLab datasource.
+ * Exactly one of `projectId` or `groupId` must be provided.
  */
 export interface GitlabConfig {
   /** Base URL for the GitLab API (e.g. https://gitlab.com/api/v4) */
@@ -15,7 +16,11 @@ export interface GitlabConfig {
   /** Personal access token for GitLab API authentication */
   token: string;
   /** GitLab project ID or URL-encoded path */
-  projectId: string;
+  projectId?: string;
+  /** GitLab group ID or URL-encoded path (queries issues across all projects in the group) */
+  groupId?: string;
+  /** Default project for creating issues in group mode */
+  defaultProjectId?: string;
 }
 
 /** Supported datasource backends for the roadmap plugin */

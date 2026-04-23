@@ -77,7 +77,7 @@ roadmap:
 
 ## 🦊 (Optional) GitLab Integration
 
-By default, the plugin stores data in a plugin database. You can optionally use a GitLab project as the backend datasource, where roadmap features are stored as GitLab issues.
+By default, the plugin stores data in a plugin database. You can optionally use a GitLab project — or an entire GitLab group — as the backend datasource, where roadmap features are stored as GitLab issues.
 
 ### How It Works
 
@@ -86,7 +86,7 @@ By default, the plugin stores data in a plugin database. You can optionally use 
 - Votes and comments are stored as issue notes
 - All existing plugin functionality (voting, commenting, status management) works seamlessly through the GitLab API
 
-### Configuration
+### Project Mode
 
 Set the datasource to `gitlab` and provide your GitLab connection details in `app-config.yaml`:
 
@@ -99,12 +99,34 @@ roadmap:
     projectId: 'your-group/your-project'
 ```
 
-| Field               | Description                                                                      |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `source`            | Set to `gitlab` to enable the GitLab datasource (defaults to `database`)         |
-| `gitlab.apiBaseUrl` | Base URL for the GitLab API                                                      |
-| `gitlab.token`      | Personal access token with API access to the project                             |
-| `gitlab.projectId`  | GitLab project ID (numeric) or URL-encoded path (e.g. `your-group/your-project`) |
+### Group Mode
+
+You can also aggregate roadmap issues across all projects in a GitLab group. Use `groupId` instead of `projectId`:
+
+```yaml
+roadmap:
+  source: gitlab
+  gitlab:
+    apiBaseUrl: https://gitlab.com/api/v4
+    token: ${GITLAB_TOKEN}
+    groupId: 'my-group'
+    defaultProjectId: 'my-group/my-project'
+```
+
+In group mode, the plugin queries issues at the group level and caches the project each issue belongs to so that subsequent operations (voting, commenting, status updates) target the correct project. The `defaultProjectId` specifies which project new features are created in.
+
+### Configuration Reference
+
+| Field                     | Description                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `source`                  | Set to `gitlab` to enable the GitLab datasource (defaults to `database`)                                              |
+| `gitlab.apiBaseUrl`       | Base URL for the GitLab API                                                                                           |
+| `gitlab.token`            | Personal access token with API access to the project or group                                                         |
+| `gitlab.projectId`        | GitLab project ID (numeric) or URL-encoded path (e.g. `your-group/your-project`). Mutually exclusive with `groupId`   |
+| `gitlab.groupId`          | GitLab group ID or path. Queries roadmap issues across all projects in the group. Mutually exclusive with `projectId` |
+| `gitlab.defaultProjectId` | Project where new features are created when using group mode. Required for creating features in group mode            |
+
+> **Note:** Exactly one of `projectId` or `groupId` must be provided.
 
 ## 🤝 Contributing
 
