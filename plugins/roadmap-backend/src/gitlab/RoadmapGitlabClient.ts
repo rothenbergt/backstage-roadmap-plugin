@@ -26,6 +26,7 @@ const AUTHOR_TAG_RE = /^<!-- author:(\S+) -->\n/;
 const VOTE_TAG_RE = /^<!-- vote:(\S+) -->$/;
 
 interface GitLabIssue {
+  id: number;
   iid: number;
   project_id?: number;
   title: string;
@@ -75,7 +76,7 @@ function mapGitLabIssueToFeature(
   voteCount?: number,
 ): Feature {
   return {
-    id: String(issue.iid),
+    id: String(issue.id),
     title: issue.title,
     description: issue.description ?? '',
     status: extractStatusFromLabels(issue.labels ?? []),
@@ -129,7 +130,7 @@ function convertIssuesToFeatures(
   voteCounts?: Record<string, number>,
 ): Feature[] {
   return issues.map(issue =>
-    mapGitLabIssueToFeature(issue, voteCounts?.[String(issue.iid)]),
+    mapGitLabIssueToFeature(issue, voteCounts?.[String(issue.id)]),
   );
 }
 
@@ -164,8 +165,12 @@ function buildNewRoadmapIssuePayload(feature: NewFeature): string {
 const VOTE_CACHE_TTL_MS = 30_000; // 30 seconds
 const PROJECT_MAP_CACHE_TTL_MS = 300_000; // 5 minutes
 
-function issueProjectCacheKey(issueIid: string): string {
-  return `roadmap:issue-project:${issueIid}`;
+function issueProjectCacheKey(issueId: string): string {
+  return `roadmap:issue-project:${issueId}`;
+}
+
+function issueIidCacheKey(issueId: string): string {
+  return `roadmap:issue-iid:${issueId}`;
 }
 
 function voteCacheKey(featureId: string): string {
@@ -265,38 +270,65 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   /**
-   * Resolves the encoded project ID for a given issue iid.
+   * Resolves the encoded project ID for a given issue id.
    * In project mode, returns the configured projectId.
    * In group mode, looks up the cached mapping from group issue responses.
    */
-  private async resolveProjectId(issueIid: string): Promise<string> {
+  private async resolveProjectId(issueId: string): Promise<string> {
     if (!this.isGroupMode) return this.projectId!;
-    const pid = await this.cache.get<string>(issueProjectCacheKey(issueIid));
+    const pid = await this.cache.get<string>(issueProjectCacheKey(issueId));
     if (!pid) {
       throw new NotFoundError(
-        `No cached project mapping for issue ${issueIid}. Fetch all features first.`,
+        `No cached project mapping for issue ${issueId}. Fetch all features first.`,
       );
     }
     return pid;
   }
 
-  private async hasIssueProjectCached(issueIid: string): Promise<boolean> {
-    const pid = await this.cache.get<string>(issueProjectCacheKey(issueIid));
+  /**
+   * Resolves the project-scoped iid for a given global issue id.
+   * Looks up the cached id→iid mapping.
+   */
+  private async resolveIid(issueId: string): Promise<string> {
+    const iid = await this.cache.get<string>(issueIidCacheKey(issueId));
+    if (!iid) {
+      throw new NotFoundError(
+        `No cached iid mapping for issue ${issueId}. Fetch all features first.`,
+      );
+    }
+    return iid;
+  }
+
+  private async hasIssueProjectCached(issueId: string): Promise<boolean> {
+    const iid = await this.cache.get<string>(issueIidCacheKey(issueId));
+    if (!iid) return false;
+    if (!this.isGroupMode) return true;
+    const pid = await this.cache.get<string>(issueProjectCacheKey(issueId));
     return !!pid;
   }
 
-  /** Caches the project_id for issues returned from group-level queries. */
-  private async cacheIssueProjects(issues: GitLabIssue[]): Promise<void> {
+  /** Caches the project_id and iid for issues returned from group-level queries. */
+  private async cacheIssueMetadata(issues: GitLabIssue[]): Promise<void> {
     await Promise.all(
-      issues
-        .filter(issue => issue.project_id)
-        .map(issue =>
+      issues.flatMap(issue => {
+        const ops = [
           this.cache.set(
-            issueProjectCacheKey(String(issue.iid)),
-            String(issue.project_id),
+            issueIidCacheKey(String(issue.id)),
+            String(issue.iid),
             { ttl: PROJECT_MAP_CACHE_TTL_MS },
           ),
-        ),
+        ];
+        if (this.isGroupMode && issue.project_id) {
+          ops.push(
+            this.cache.set(
+              issueProjectCacheKey(String(issue.id)),
+              String(issue.project_id),
+              { ttl: PROJECT_MAP_CACHE_TTL_MS },
+            ),
+          );
+        }
+        return ops;
+      }),
     );
   }
 
@@ -308,7 +340,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   }
 
   private async ensureIssueProjectCached(featureId: string): Promise<void> {
-    if (this.isGroupMode && !(await this.hasIssueProjectCached(featureId))) {
+    if (!(await this.hasIssueProjectCached(featureId))) {
       await this.fetchAllRoadmapIssues();
     }
   }
@@ -318,7 +350,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     init?: { method?: string; body?: string },
   ): Promise<{ data: T; res: Response }> {
     const method = init?.method ?? 'GET';
-    this.logger.info(`GitLab API request: ${method} ${sanitizeLog(url)}`);
+    this.logger.debug(`GitLab API request: ${method} ${sanitizeLog(url)}`);
     const res = await fetch(url, { ...init, headers: this.authHeaders() });
     if (!res.ok) {
       const text = await res.text();
@@ -363,22 +395,26 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     const issues = await this.fetchAllPages<GitLabIssue>(
       this.roadmapIssuesUrl('desc'),
     );
-    if (this.isGroupMode) await this.cacheIssueProjects(issues);
+    await this.cacheIssueMetadata(issues);
     return issues;
   }
 
   private async fetchIssueById(id: string): Promise<GitLabIssue> {
     const pid = await this.resolveProjectId(id);
+    const iid = await this.resolveIid(id);
     const { data } = await this.callGitLabApi<GitLabIssue>(
-      this.projectApiUrl(`/issues/${id}`, pid),
+      this.projectApiUrl(`/issues/${iid}`, pid),
     );
     if (this.isGroupMode && data.project_id) {
       await this.cache.set(
-        issueProjectCacheKey(String(data.iid)),
+        issueProjectCacheKey(String(data.id)),
         String(data.project_id),
         { ttl: PROJECT_MAP_CACHE_TTL_MS },
       );
     }
+    await this.cache.set(issueIidCacheKey(String(data.id)), String(data.iid), {
+      ttl: PROJECT_MAP_CACHE_TTL_MS,
+    });
     return data;
   }
 
@@ -404,8 +440,9 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     labels: string[],
   ): Promise<GitLabIssue> {
     const pid = await this.resolveProjectId(id);
+    const iid = await this.resolveIid(id);
     const { data } = await this.callGitLabApi<GitLabIssue>(
-      this.projectApiUrl(`/issues/${id}`, pid),
+      this.projectApiUrl(`/issues/${iid}`, pid),
       { method: 'PUT', body: JSON.stringify({ labels: labels.join(',') }) },
     );
     return data;
@@ -416,9 +453,10 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     sort: 'asc' | 'desc' = 'desc',
   ): Promise<GitLabNote[]> {
     const pid = await this.resolveProjectId(featureId);
+    const iid = await this.resolveIid(featureId);
     return this.fetchAllPages<GitLabNote>(
       this.projectApiUrl(
-        `/issues/${featureId}/notes?sort=${sort}&order_by=created_at&${PAGINATION}`,
+        `/issues/${iid}/notes?sort=${sort}&order_by=created_at&${PAGINATION}`,
         pid,
       ),
     );
@@ -439,8 +477,9 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   private async deleteNote(featureId: string, noteId: number): Promise<void> {
     const pid = await this.resolveProjectId(featureId);
+    const iid = await this.resolveIid(featureId);
     await this.callGitLabApi<void>(
-      this.projectApiUrl(`/issues/${featureId}/notes/${noteId}`, pid),
+      this.projectApiUrl(`/issues/${iid}/notes/${noteId}`, pid),
       { method: 'DELETE' },
     );
   }
@@ -450,8 +489,9 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     body: string,
   ): Promise<GitLabNote> {
     const pid = await this.resolveProjectId(featureId);
+    const iid = await this.resolveIid(featureId);
     const { data } = await this.callGitLabApi<GitLabNote>(
-      this.projectApiUrl(`/issues/${featureId}/notes`, pid),
+      this.projectApiUrl(`/issues/${iid}/notes`, pid),
       { method: 'POST', body: JSON.stringify({ body }) },
     );
     return data;
@@ -497,7 +537,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     const counts: Record<string, number> = {};
     await Promise.all(
       issues.map(async issue => {
-        const id = String(issue.iid);
+        const id = String(issue.id);
         const votes = await this.getOrFetchVotes(id);
         counts[id] = votes.size;
       }),
