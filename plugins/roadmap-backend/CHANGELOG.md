@@ -1,5 +1,11 @@
 # @rothenbergt/backstage-plugin-roadmap-backend
 
+## 0.5.1
+
+### Patch Changes
+
+- 2d06659: Fix for potential clashes occuring when in group mode between projects due to using iid in cache
+
 ## 0.5.0
 
 ### Minor Changes
