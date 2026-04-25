@@ -18,6 +18,7 @@ const ENCODED_GROUP_ID = encodeURIComponent(GROUP_ID);
 const ENCODED_DEFAULT_PROJECT_ID = encodeURIComponent(DEFAULT_PROJECT_ID);
 
 const makeIssue = (overrides: Record<string, any> = {}) => ({
+  id: overrides.id ?? overrides.iid ?? 1,
   iid: 1,
   title: 'Test Feature',
   description: 'A test feature',
@@ -82,6 +83,26 @@ function createGroupClient(
     logger: mockServices.logger.mock(),
     cache: cacheOverride ?? createMockCache(),
   });
+}
+
+/** Pre-populate the iid cache so ensureIssueProjectCached won't trigger fetchAllRoadmapIssues */
+function seedIidCache(
+  cache: ReturnType<typeof createMockCache>,
+  issueId: string | number,
+  iid?: string | number,
+) {
+  cache.store.set(`roadmap:issue-iid:${issueId}`, String(iid ?? issueId));
+}
+
+/** Pre-populate both iid and project caches for group mode */
+function seedGroupCache(
+  cache: ReturnType<typeof createMockCache>,
+  issueId: string | number,
+  projectId: string | number,
+  iid?: string | number,
+) {
+  seedIidCache(cache, issueId, iid ?? issueId);
+  cache.store.set(`roadmap:issue-project:${issueId}`, String(projectId));
 }
 
 const notesUrl = (issueId: string | number) =>
@@ -163,7 +184,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('getFeatureById', () => {
     it('returns a single feature with vote count', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
 
       server.use(
         http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
@@ -179,7 +202,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('throws NotFoundError for non-existent feature', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 999);
+      const client = createClient(cache);
 
       server.use(
         http.get(
@@ -194,7 +219,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('updateFeatureStatus', () => {
     it('replaces status label on the issue', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       let updatedLabels: string | undefined;
 
       server.use(
@@ -221,7 +248,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('addComment', () => {
     it('embeds author tag in note body when author is provided', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       let postedBody: string | undefined;
 
       server.use(
@@ -244,7 +273,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('does not embed author tag when author is not provided', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       let postedBody: string | undefined;
 
       server.use(
@@ -267,7 +298,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('getCommentsByFeatureId', () => {
     it('filters out system notes and vote markers', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
 
       server.use(
         http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
@@ -298,6 +331,7 @@ describe('RoadmapGitlabClient', () => {
   describe('toggleVote', () => {
     it('adds a vote when user has not voted', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const client = createClient(cache);
       let postedBody: string | undefined;
 
@@ -321,6 +355,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('removes a vote when user has already voted', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const client = createClient(cache);
       let deletedPath: string | undefined;
 
@@ -346,6 +381,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('invalidates cache before toggling and re-caches after', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const client = createClient(cache);
 
       server.use(
@@ -372,6 +408,7 @@ describe('RoadmapGitlabClient', () => {
   describe('getVoteCount', () => {
     it('returns count from cache when available', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       cache.store.set('roadmap:votes:1', { alice: 10, bob: 20 });
       const client = createClient(cache);
 
@@ -382,6 +419,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('fetches from GitLab when cache is empty', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const client = createClient(cache);
 
       server.use(
@@ -411,6 +449,7 @@ describe('RoadmapGitlabClient', () => {
   describe('hasVoted', () => {
     it('returns true when user has a vote marker', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       cache.store.set('roadmap:votes:1', { jdoe: 10 });
       const client = createClient(cache);
 
@@ -421,6 +460,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('returns false when user has no vote marker', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       cache.store.set('roadmap:votes:1', { alice: 10 });
       const client = createClient(cache);
 
@@ -433,6 +473,8 @@ describe('RoadmapGitlabClient', () => {
   describe('hasVotedBatch', () => {
     it('returns vote status for multiple features', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
+      seedIidCache(cache, 2);
       cache.store.set('roadmap:votes:1', { jdoe: 10 });
       cache.store.set('roadmap:votes:2', { alice: 20 });
       const client = createClient(cache);
@@ -449,6 +491,8 @@ describe('RoadmapGitlabClient', () => {
   describe('getVoteCounts', () => {
     it('returns counts for multiple features', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
+      seedIidCache(cache, 2);
       cache.store.set('roadmap:votes:1', { alice: 10 });
       cache.store.set('roadmap:votes:2', { alice: 20, bob: 21 });
       const client = createClient(cache);
@@ -461,7 +505,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('API error handling', () => {
     it('throws NotAllowedError on 401', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       server.use(
         http.get(
           issueUrl(1),
@@ -472,7 +518,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('throws ConflictError on non-404/non-401 errors', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       server.use(
         http.get(
           issueUrl(1),
@@ -518,7 +566,9 @@ describe('RoadmapGitlabClient', () => {
 
   describe('edge cases', () => {
     it('defaults to Suggested status when no status labels', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       server.use(
         http.get(issueUrl(1), () =>
           HttpResponse.json(makeIssue({ labels: ['roadmap'] })),
@@ -532,7 +582,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('defaults description to empty string when missing', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       server.use(
         http.get(issueUrl(1), () =>
           HttpResponse.json(makeIssue({ description: undefined })),
@@ -546,7 +598,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('defaults author to empty string when missing', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       server.use(
         http.get(issueUrl(1), () =>
           HttpResponse.json(makeIssue({ author: undefined })),
@@ -560,7 +614,9 @@ describe('RoadmapGitlabClient', () => {
     });
 
     it('adds roadmap label during status update if missing', async () => {
-      const client = createClient();
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
       let updatedLabels: string | undefined;
 
       server.use(
@@ -583,6 +639,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('strips trailing slashes from baseUrl', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const client = RoadmapGitlabClient.create({
         gitlab: {
           apiBaseUrl: `${BASE_URL}///`,
@@ -606,6 +663,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('encodes projectId with special characters', async () => {
       const cache = createMockCache();
+      seedIidCache(cache, 1);
       const encodedId = encodeURIComponent('my-group/my-project');
       const client = RoadmapGitlabClient.create({
         gitlab: {
@@ -673,7 +731,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('fetches single issue using cached project_id', async () => {
       const cache = createMockCache();
-      cache.store.set('roadmap:issue-project:1', '789');
+      seedGroupCache(cache, 1, 789);
       const client = createGroupClient(cache);
 
       server.use(
@@ -765,7 +823,7 @@ describe('RoadmapGitlabClient', () => {
 
     it('caches project_id when fetching single issue by id', async () => {
       const cache = createMockCache();
-      cache.store.set('roadmap:issue-project:1', '789');
+      seedGroupCache(cache, 1, 789);
       const client = createGroupClient(cache);
 
       server.use(
@@ -782,6 +840,135 @@ describe('RoadmapGitlabClient', () => {
       expect(cache.set).toHaveBeenCalledWith('roadmap:issue-project:1', '789', {
         ttl: 300000,
       });
+    });
+
+    it('adds a comment using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      const client = createGroupClient(cache);
+
+      server.use(
+        http.post(groupProjectNotesUrl(789, 1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          return HttpResponse.json(makeNote({ id: 500, body: body.body }));
+        }),
+      );
+
+      const comment = await client.addComment({
+        featureId: '1',
+        text: 'group comment',
+        author: 'user:default/alice',
+      });
+      expect(comment.text).toBe('group comment');
+      expect(comment.author).toBe('alice');
+    });
+
+    it('toggles vote using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      const client = createGroupClient(cache);
+
+      server.use(
+        http.get(groupProjectNotesUrl(789, 1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
+        http.post(groupProjectNotesUrl(789, 1), async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          return HttpResponse.json(makeNote({ id: 600, body: body.body }));
+        }),
+      );
+
+      const result = await client.toggleVote('1', 'user:default/bob');
+      expect(result.voteAdded).toBe(true);
+      expect(result.voteCount).toBe(1);
+    });
+
+    it('updates feature status using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      const client = createGroupClient(cache);
+
+      server.use(
+        http.get(groupProjectIssueUrl(789, 1), () =>
+          HttpResponse.json(makeIssue({ project_id: 789 })),
+        ),
+        http.put(groupProjectIssueUrl(789, 1), () =>
+          HttpResponse.json(
+            makeIssue({
+              project_id: 789,
+              labels: ['roadmap', 'roadmap::Planned'],
+            }),
+          ),
+        ),
+      );
+
+      const feature = await client.updateFeatureStatus(
+        '1',
+        FeatureStatus.Planned,
+      );
+      expect(feature.status).toBe(FeatureStatus.Planned);
+    });
+
+    it('returns hasVoted using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      cache.store.set('roadmap:votes:1', { alice: 10 });
+      const client = createGroupClient(cache);
+
+      expect(await client.hasVoted('1', 'user:default/alice')).toBe(true);
+      expect(await client.hasVoted('1', 'user:default/bob')).toBe(false);
+    });
+
+    it('returns hasVotedBatch using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      seedGroupCache(cache, 2, 789);
+      cache.store.set('roadmap:votes:1', { alice: 10 });
+      cache.store.set('roadmap:votes:2', { bob: 20 });
+      const client = createGroupClient(cache);
+
+      const result = await client.hasVotedBatch(
+        ['1', '2'],
+        'user:default/alice',
+      );
+      expect(result).toEqual({ '1': true, '2': false });
+    });
+
+    it('returns getVoteCounts using cached project_id', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      seedGroupCache(cache, 2, 789);
+      cache.store.set('roadmap:votes:1', { alice: 10 });
+      cache.store.set('roadmap:votes:2', { alice: 20, bob: 21 });
+      const client = createGroupClient(cache);
+
+      const result = await client.getVoteCounts(['1', '2']);
+      expect(result).toEqual({ '1': 1, '2': 2 });
+    });
+  });
+
+  describe('callGitLabApi edge cases', () => {
+    it('handles 204 No Content response', async () => {
+      const cache = createMockCache();
+      seedGroupCache(cache, 1, 789);
+      const client = createGroupClient(cache);
+
+      server.use(
+        http.get(groupProjectNotesUrl(789, 1), () =>
+          HttpResponse.json(
+            [makeNote({ id: 700, body: '<!-- vote:alice -->' })],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+        http.delete(
+          `${groupProjectNotesUrl(789, 1)}/:noteId`,
+          () => new HttpResponse(null, { status: 204 }),
+        ),
+      );
+
+      const result = await client.toggleVote('1', 'user:default/alice');
+      expect(result.voteAdded).toBe(false);
+      expect(result.voteCount).toBe(0);
     });
   });
 });
