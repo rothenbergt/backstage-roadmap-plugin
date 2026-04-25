@@ -10,6 +10,7 @@ import { RoadmapDatasource } from '../types';
 import { LoggerService, DatabaseService } from '@backstage/backend-plugin-api';
 import { NotFoundError, ConflictError } from '@backstage/errors';
 import { resolvePackagePath } from '@backstage/backend-plugin-api';
+import { statusFromDb, statusToDb } from './statusDbMapping';
 
 const migrationsDir = resolvePackagePath(
   '@rothenbergt/backstage-plugin-roadmap-backend',
@@ -45,6 +46,23 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
   constructor(knexInstance: Knex, logger: LoggerService) {
     this.knex = knexInstance;
     this.logger = logger;
+  }
+
+  private mapFeature(row: Record<string, unknown>): Feature {
+    return {
+      id: String(row.id),
+      title: String(row.title),
+      description: String(row.description),
+      status: statusFromDb(String(row.status)),
+      votes: Number(row.votes ?? 0),
+      author: String(row.author),
+      created_at: String(row.created_at),
+      updated_at: String(row.updated_at),
+      board_position:
+        row.board_position !== undefined && row.board_position !== null
+          ? Number(row.board_position)
+          : 0,
+    };
   }
 
   async addComment(comment: NewComment): Promise<Comment> {
@@ -122,17 +140,25 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
   async addFeature(feature: NewFeature & { author: string }): Promise<Feature> {
     const trx = await this.knex.transaction();
     try {
+      const maxRow = await trx('features')
+        .where({ status: statusToDb(FeatureStatus.Suggested) })
+        .max('board_position as maxp')
+        .first();
+      const nextPosition =
+        Number((maxRow as { maxp?: string | number })?.maxp ?? 0) + 1;
+
       // Insert feature and return the complete inserted object
       const [newFeature] = await trx('features')
         .insert({
           ...feature,
-          status: FeatureStatus.Suggested,
+          status: statusToDb(FeatureStatus.Suggested),
           votes: 0,
+          board_position: nextPosition,
         })
         .returning('*');
 
       await trx.commit();
-      return newFeature;
+      return this.mapFeature(newFeature);
     } catch (error) {
       await trx.rollback();
       this.logger.error('Error adding feature', { error: String(error) });
@@ -142,7 +168,14 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
 
   async getAllFeatures(): Promise<Feature[]> {
     try {
-      return this.knex('features').orderBy('created_at', 'desc').select('*');
+      const rows = await this.knex('features')
+        .orderBy([
+          { column: 'status', order: 'asc' },
+          { column: 'board_position', order: 'asc' },
+          { column: 'created_at', order: 'desc' },
+        ])
+        .select('*');
+      return rows.map(r => this.mapFeature(r));
     } catch (error) {
       this.logger.error('Error fetching all features', {
         error: String(error),
@@ -159,7 +192,7 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
         throw new NotFoundError(`Feature with id ${id} not found`);
       }
 
-      return feature;
+      return this.mapFeature(feature);
     } catch (error) {
       this.logger.error(`Error fetching feature ${id}`, {
         error: String(error),
@@ -195,13 +228,13 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
       const [updatedFeature] = await trx('features')
         .where({ id })
         .update({
-          status,
+          status: statusToDb(status),
           updated_at: this.knex.fn.now(),
         })
         .returning('*');
 
       await trx.commit();
-      return updatedFeature;
+      return this.mapFeature(updatedFeature);
     } catch (error) {
       await trx.rollback();
       this.logger.error('Error updating feature status', {
@@ -217,6 +250,79 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
         `Failed to update status for feature ${id}`,
         error as Error,
       );
+    }
+  }
+
+  async updateFeatureDetails(
+    id: string,
+    fields: { title?: string; description?: string },
+  ): Promise<Feature> {
+    const trx = await this.knex.transaction();
+    try {
+      const feature = await trx('features').where({ id }).first();
+      if (!feature) {
+        await trx.rollback();
+        throw new NotFoundError(`Feature with id ${id} not found`);
+      }
+      const patch: Record<string, unknown> = { updated_at: this.knex.fn.now() };
+      if (fields.title !== undefined) patch.title = fields.title;
+      if (fields.description !== undefined)
+        patch.description = fields.description;
+      const [updated] = await trx('features')
+        .where({ id })
+        .update(patch)
+        .returning('*');
+      await trx.commit();
+      return this.mapFeature(updated);
+    } catch (error) {
+      await trx.rollback();
+      if (error instanceof NotFoundError) throw error;
+      this.logger.error('Error updating feature details', {
+        error: String(error),
+      });
+      throw new ConflictError(`Failed to update feature ${id}`, error as Error);
+    }
+  }
+
+  async deleteFeature(id: string): Promise<void> {
+    const n = await this.knex('features').where({ id }).delete();
+    if (!n) {
+      throw new NotFoundError(`Feature with id ${id} not found`);
+    }
+  }
+
+  async reorderFeaturesInStatus(
+    status: FeatureStatus,
+    orderedIds: string[],
+  ): Promise<void> {
+    const trx = await this.knex.transaction();
+    try {
+      for (let i = 0; i < orderedIds.length; i += 1) {
+        const updated = await trx('features')
+          .where({ id: orderedIds[i], status: statusToDb(status) })
+          .update({
+            board_position: i,
+          });
+        if (!updated) {
+          await trx.rollback();
+          throw new NotFoundError(
+            `Feature ${orderedIds[i]} not found or not in status ${status}`,
+          );
+        }
+      }
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      if (error instanceof NotFoundError) throw error;
+      this.logger.error('Error reordering features', { error: String(error) });
+      throw new ConflictError('Failed to reorder features', error as Error);
+    }
+  }
+
+  async deleteCommentById(commentId: string): Promise<void> {
+    const n = await this.knex('comments').where({ id: commentId }).delete();
+    if (!n) {
+      throw new NotFoundError(`Comment with id ${commentId} not found`);
     }
   }
 

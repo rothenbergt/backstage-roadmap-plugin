@@ -21,7 +21,12 @@ export { InputError, NotFoundError, NotAllowedError, ConflictError };
  */
 export interface FeatureServiceInterface {
   /**
-   * Get all roadmap features
+   * Board list: visibility + retention (server-side).
+   */
+  listFeaturesForBoard(includeBeyondRetention: boolean): Promise<Feature[]>;
+
+  /**
+   * Get all roadmap features (board-filtered; same as listFeaturesForBoard(false))
    *
    * @throws {ConflictError} When the database operation fails
    */
@@ -51,6 +56,20 @@ export interface FeatureServiceInterface {
    * @throws {ConflictError} When the database operation fails
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
+
+  updateFeatureDetails(
+    id: string,
+    fields: { title?: string; description?: string },
+  ): Promise<Feature>;
+
+  deleteFeature(id: string): Promise<void>;
+
+  reorderFeatures(status: FeatureStatus, orderedIds: string[]): Promise<void>;
+
+  assertAuthorSuggestedOrNotFound(
+    id: string,
+    username: string,
+  ): Promise<Feature>;
 }
 
 /**
@@ -73,6 +92,8 @@ export interface CommentServiceInterface {
    * @throws {ConflictError} When the database operation fails
    */
   getCommentsByFeatureId(featureId: string): Promise<Comment[]>;
+
+  deleteComment(commentId: string): Promise<void>;
 }
 
 /**

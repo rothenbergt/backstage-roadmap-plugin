@@ -4,7 +4,12 @@ import {
   FetchApi,
   IdentityApi,
 } from '@backstage/core-plugin-api';
-import { NotFoundError, ConflictError, InputError } from '@backstage/errors';
+import {
+  NotFoundError,
+  ConflictError,
+  InputError,
+  NotAllowedError,
+} from '@backstage/errors';
 import {
   Feature,
   NewFeature,
@@ -12,6 +17,7 @@ import {
   Comment,
   NewComment,
   VoteResponse,
+  RoadmapBoardConfigResponse,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 
 /**
@@ -25,10 +31,14 @@ export const roadmapApiRef = createApiRef<RoadmapApi>({
  * Interface for the Roadmap API
  */
 export interface RoadmapApi {
+  getBoardConfig(): Promise<RoadmapBoardConfigResponse>;
+
   /**
-   * Get all features on the roadmap
+   * Get features for the board (server-filtered). Database: optional full list.
    */
-  getFeatures(): Promise<Feature[]>;
+  getFeatures(options?: {
+    includeBeyondRetention?: boolean;
+  }): Promise<Feature[]>;
 
   /**
    * Get a single feature by ID
@@ -44,6 +54,17 @@ export interface RoadmapApi {
    * Update a feature's status
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
+
+  updateFeatureDetails(
+    id: string,
+    fields: { title?: string; description?: string },
+  ): Promise<Feature>;
+
+  deleteFeature(id: string): Promise<void>;
+
+  reorderFeatures(status: FeatureStatus, orderedIds: string[]): Promise<void>;
+
+  deleteComment(commentId: string): Promise<void>;
 
   /**
    * Get comments for a feature
@@ -140,6 +161,8 @@ export class RoadmapApiClient implements RoadmapApi {
       switch (response.status) {
         case 400:
           throw new InputError(errorText || 'Bad Request');
+        case 403:
+          throw new NotAllowedError(errorText || 'Not allowed');
         case 404:
           throw new NotFoundError(errorText || 'Resource not found');
         case 409:
@@ -151,11 +174,24 @@ export class RoadmapApiClient implements RoadmapApi {
       }
     }
 
+    if (response.status === 204) {
+      return undefined as T;
+    }
     return await response.json();
   }
 
-  async getFeatures(): Promise<Feature[]> {
-    return this.fetch<Feature[]>('/features');
+  async getBoardConfig(): Promise<RoadmapBoardConfigResponse> {
+    return this.fetch<RoadmapBoardConfigResponse>('/features/board-config');
+  }
+
+  async getFeatures(options?: {
+    includeBeyondRetention?: boolean;
+  }): Promise<Feature[]> {
+    const q =
+      options?.includeBeyondRetention === true
+        ? '?includeBeyondRetention=true'
+        : '';
+    return this.fetch<Feature[]>(`/features${q}`);
   }
 
   async getFeatureById(id: string): Promise<Feature> {
@@ -176,6 +212,38 @@ export class RoadmapApiClient implements RoadmapApi {
     return this.fetch<Feature>(`/features/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  async updateFeatureDetails(
+    id: string,
+    fields: { title?: string; description?: string },
+  ): Promise<Feature> {
+    return this.fetch<Feature>(`/features/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(fields),
+    });
+  }
+
+  async deleteFeature(id: string): Promise<void> {
+    await this.fetch<void>(`/features/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderFeatures(
+    status: FeatureStatus,
+    orderedIds: string[],
+  ): Promise<void> {
+    await this.fetch<void>('/features/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ status, orderedIds }),
+    });
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    await this.fetch<void>(`/comments/${commentId}`, {
+      method: 'DELETE',
     });
   }
 

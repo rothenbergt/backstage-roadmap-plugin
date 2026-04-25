@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useComments, useAddComment } from '../../hooks';
+import { useComments, useAddComment, useDeleteComment } from '../../hooks';
 import { formatDateUTC } from './dateUtils';
 import {
   Typography,
@@ -10,6 +10,12 @@ import {
   Paper,
   List,
   CircularProgress,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { MarkdownContent, Progress } from '@backstage/core-components';
@@ -17,6 +23,7 @@ import { parseEntityRef } from '@backstage/catalog-model';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 import SendIcon from '@material-ui/icons/Send';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -102,9 +109,14 @@ const useStyles = makeStyles(theme => ({
 
 type CommentSectionProps = {
   featureId: string;
+  /** When true, show admin delete controls (database datasource only). */
+  canDeleteComments?: boolean;
 };
 
-export const CommentSection = ({ featureId }: CommentSectionProps) => {
+export const CommentSection = ({
+  featureId,
+  canDeleteComments = false,
+}: CommentSectionProps) => {
   const classes = useStyles();
   const alertApi = useApi(alertApiRef);
   const { data: comments, isLoading, error } = useComments(featureId);
@@ -113,8 +125,17 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
     isPending: isSubmitting,
     error: submitError,
   } = useAddComment(featureId);
+  const {
+    mutate: deleteComment,
+    isPending: isDeleting,
+    error: deleteError,
+    variables: deletingCommentId,
+  } = useDeleteComment(featureId);
   const [commentText, setCommentText] = useState('');
   const [textError, setTextError] = useState('');
+  const [deleteDialogCommentId, setDeleteDialogCommentId] = useState<
+    string | null
+  >(null);
   const maxCommentLength = 1000;
 
   // Show alert when error changes
@@ -144,6 +165,20 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
       });
     }
   }, [submitError, alertApi]);
+
+  useEffect(() => {
+    if (deleteError) {
+      alertApi.post({
+        message: `Failed to delete comment: ${
+          deleteError instanceof Error
+            ? deleteError.message
+            : String(deleteError)
+        }`,
+        severity: 'error',
+        display: 'transient',
+      });
+    }
+  }, [deleteError, alertApi]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newText = event.target.value;
@@ -245,6 +280,20 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
                     </Typography>
                   </Box>
                 </Box>
+                {canDeleteComments && (
+                  <IconButton
+                    size="small"
+                    aria-label="Delete comment"
+                    disabled={isDeleting}
+                    onClick={() => setDeleteDialogCommentId(comment.id)}
+                  >
+                    {isDeleting && deletingCommentId === comment.id ? (
+                      <CircularProgress size={18} />
+                    ) : (
+                      <DeleteOutlineIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                )}
               </Box>
 
               <div className={classes.commentText}>
@@ -314,6 +363,48 @@ export const CommentSection = ({ featureId }: CommentSectionProps) => {
       </Box>
 
       {renderCommentContent()}
+
+      <Dialog
+        open={Boolean(deleteDialogCommentId)}
+        onClose={() => !isDeleting && setDeleteDialogCommentId(null)}
+      >
+        <DialogTitle>Delete comment?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently removes the comment. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteDialogCommentId(null)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="secondary"
+            variant="contained"
+            disabled={isDeleting || !deleteDialogCommentId}
+            onClick={() => {
+              if (!deleteDialogCommentId) {
+                return;
+              }
+              deleteComment(deleteDialogCommentId, {
+                onSuccess: () => {
+                  setDeleteDialogCommentId(null);
+                  alertApi.post({
+                    message: 'Comment deleted',
+                    severity: 'success',
+                    display: 'transient',
+                  });
+                },
+              });
+            }}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

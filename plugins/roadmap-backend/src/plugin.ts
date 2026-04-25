@@ -7,6 +7,7 @@ import { RoadmapDatasource } from './types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
 import { RoadmapGitlabClient } from './gitlab';
 import { getDatasource, getGitlabConfig, isPermissionEnabled } from './config';
+import { getBoardConfigResponse, getMergedBoardColumns } from './boardConfig';
 
 /**
  * Backend plugin for the Roadmap feature
@@ -39,6 +40,8 @@ export const roadmapPlugin = createBackendPlugin({
       }) {
         const datasource = getDatasource(config);
         const permissionEnabled = isPermissionEnabled(config);
+        const boardColumns = getMergedBoardColumns(config);
+        const boardConfigResponse = getBoardConfigResponse(config, datasource);
 
         let db: RoadmapDatasource;
         if (datasource === 'database') {
@@ -69,6 +72,9 @@ export const roadmapPlugin = createBackendPlugin({
             httpAuth,
             permissions: permissionEnabled ? permissions : undefined,
             cache,
+            datasource,
+            boardColumns,
+            boardConfigResponse,
           }),
         );
         httpRouter.addAuthPolicy({

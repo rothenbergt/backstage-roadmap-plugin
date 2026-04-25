@@ -3,6 +3,23 @@ import { roadmapPlugin } from './plugin';
 import { mockServices } from '@backstage/backend-test-utils';
 import request from 'supertest';
 
+/** True when the native better-sqlite3 binary matches this Node (CI / nvm-aligned dev). */
+function canOpenBetterSqliteMemory(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const BetterSqlite = require('better-sqlite3');
+    const db = new BetterSqlite(':memory:');
+    db.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const describeIntegration = canOpenBetterSqliteMemory()
+  ? describe
+  : describe.skip;
+
 // Mock the gitlab client to avoid real HTTP calls
 jest.mock('./gitlab', () => ({
   RoadmapGitlabClient: {
@@ -22,7 +39,7 @@ jest.mock('./gitlab', () => ({
   },
 }));
 
-describe('roadmapPlugin datasource config', () => {
+describeIntegration('roadmapPlugin datasource config', () => {
   it('starts with database source by default', async () => {
     const { server } = await startTestBackend({
       features: [
