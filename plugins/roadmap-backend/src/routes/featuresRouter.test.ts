@@ -8,6 +8,7 @@ import { RouterOptions } from './router';
 import { RoadmapDatasource } from '../types';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { ConfigReader } from '@backstage/config';
+import { getBoardConfigResponse, getMergedBoardColumns } from '../boardConfig';
 import {
   AuthorizeResult,
   PolicyDecision,
@@ -44,11 +45,14 @@ function createMockHttpAuth() {
 }
 
 function createApp(overrides?: Partial<RouterOptions>): express.Express {
+  const cfg = new ConfigReader({
+    roadmap: { adminUsers: ['user:default/admin'] },
+  });
+  const boardColumns = getMergedBoardColumns(cfg);
+  const boardConfigResponse = getBoardConfigResponse(cfg, 'database');
   const options: RouterOptions = {
     logger: mockServices.logger.mock(),
-    config: new ConfigReader({
-      roadmap: { adminUsers: ['user:default/admin'] },
-    }),
+    config: cfg,
     db: createMockDb(),
     httpAuth: createMockHttpAuth(),
     userInfo: mockServices.userInfo({
@@ -56,6 +60,9 @@ function createApp(overrides?: Partial<RouterOptions>): express.Express {
     }),
     permissions: mockServices.permissions.mock(),
     cache: mockServices.cache.mock(),
+    datasource: 'database',
+    boardColumns,
+    boardConfigResponse,
     ...overrides,
   };
   const app = express();
@@ -190,6 +197,83 @@ describe('featuresRouter', () => {
         body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
       });
 
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe('GET /board-config', () => {
+    it('returns merged columns and capabilities for database', async () => {
+      ({ server, baseUrl } = await startServer(createApp()));
+
+      const response = await fetch(`${baseUrl}/board-config`);
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(Array.isArray(body.columns)).toBe(true);
+      expect(body.capabilities?.adminReorder).toBe(true);
+      expect(body.capabilities?.includeBeyondRetentionQuery).toBe(true);
+    });
+
+    it('returns GitLab capabilities (extensions off)', async () => {
+      const cfg = new ConfigReader({
+        roadmap: { adminUsers: ['user:default/admin'] },
+      });
+      ({ server, baseUrl } = await startServer(
+        createApp({
+          datasource: 'gitlab',
+          boardColumns: getMergedBoardColumns(cfg),
+          boardConfigResponse: getBoardConfigResponse(cfg, 'gitlab'),
+        }),
+      ));
+
+      const response = await fetch(`${baseUrl}/board-config`);
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.capabilities?.adminReorder).toBe(false);
+      expect(body.capabilities?.adminEditTitleDescription).toBe(false);
+    });
+  });
+
+  describe('GitLab datasource — database-only routes', () => {
+    function createGitlabApp() {
+      const cfg = new ConfigReader({
+        roadmap: { adminUsers: ['user:default/admin'] },
+      });
+      return createApp({
+        datasource: 'gitlab',
+        boardColumns: getMergedBoardColumns(cfg),
+        boardConfigResponse: getBoardConfigResponse(cfg, 'gitlab'),
+      });
+    }
+
+    it('returns 403 for PUT /reorder', async () => {
+      ({ server, baseUrl } = await startServer(createGitlabApp()));
+
+      const response = await fetch(`${baseUrl}/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: FeatureStatus.Suggested,
+          orderedIds: ['1'],
+        }),
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it('returns 403 for PUT /:id (title/description)', async () => {
+      ({ server, baseUrl } = await startServer(createGitlabApp()));
+
+      const response = await fetch(`${baseUrl}/1`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'x' }),
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it('returns 403 for DELETE /:id', async () => {
+      ({ server, baseUrl } = await startServer(createGitlabApp()));
+
+      const response = await fetch(`${baseUrl}/1`, { method: 'DELETE' });
       expect(response.status).toBe(403);
     });
   });

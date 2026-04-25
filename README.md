@@ -75,6 +75,52 @@ roadmap:
     - user:default/admin2
 ```
 
+### Board columns (labels and visibility)
+
+Optional `roadmap.columns` in `app-config.yaml` customizes each status column on the roadmap board. The backend merges your entries with built-in defaults and exposes the resolved layout to the UI via `GET /features/board-config` (so the browser does not parse this YAML itself).
+
+Add a list under `columns`. Each item supports:
+
+| Field             | Description                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `status`          | One of: `Suggested`, `Planned`, `In Progress` (quote in YAML if needed), `Completed`, `Declined`. Unknown values are ignored.                          |
+| `title`           | Column heading shown on the board (optional; defaults to the status name).                                                                             |
+| `visible`         | If `false`, that column is hidden on the board and features in that status are omitted from the default feature list (smaller API payloads). Optional. |
+| `retentionDays`   | Positive number: hide features older than this many days in the default list (**database** datasource only). Optional; omit for no retention.          |
+| `retentionAnchor` | `created` or `updated` (default `updated`): which timestamp retention uses.                                                                            |
+
+**Defaults:** Every status has a column. **In Progress** is included but **`visible: false` by default**, so the board matches the classic four-column layout until you turn it on. Other statuses default to visible.
+
+**Example** — each row uses `status` (required for the merge). The block below shows **every optional field** at least once: `title`, `visible`, `retentionDays`, and both `retentionAnchor` values (`created` / `updated`). Retention only affects the default feature list when using the **database** datasource.
+
+```yaml
+roadmap:
+  columns:
+    - status: Suggested
+      title: Ideas
+      visible: true
+      retentionDays: 90
+      retentionAnchor: created
+    - status: Planned
+      title: Committed
+      visible: true
+      retentionDays: 365
+      retentionAnchor: updated
+    - status: 'In Progress'
+      title: Active work
+      visible: true
+    - status: Completed
+      title: Shipped
+      visible: true
+      retentionDays: 30
+      retentionAnchor: updated
+    - status: Declined
+      title: Not doing
+      visible: false
+```
+
+With the **GitLab** datasource, column labels and visibility still apply to how lists are filtered and labeled; retention and “show beyond retention” remain **database-only** (see the [roadmap-backend README](plugins/roadmap-backend/README.md) for API details).
+
 ## 🦊 (Optional) GitLab Integration
 
 By default, the plugin stores data in a plugin database. You can optionally use a GitLab project — or an entire GitLab group — as the backend datasource, where roadmap features are stored as GitLab issues.
@@ -135,10 +181,12 @@ We welcome contributions! Here's how to get started:
 ### Development Setup
 
 1. Fork and clone the repository
-2. Install dependencies: `yarn install`
+2. Install dependencies: `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime; otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
 3. Make your changes
 4. Run tests: `yarn test:all`
 5. Run lint: `yarn lint:all`
+
+**`jwa` resolutions:** `jws` v3 depends on `jwa` 1.x and `jws` v4 on `jwa` 2.x, so root `package.json` pins both majors separately. Replacing them with one version would break one of those stacks unless upstream upgrades.
 
 ### Creating a Changeset
 

@@ -3,7 +3,11 @@ import { CacheService, LoggerService } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import express from 'express';
 import Router from 'express-promise-router';
-import { RoadmapDatasource } from '../types';
+import { DatasourceType, RoadmapDatasource } from '../types';
+import {
+  RoadmapBoardColumnResolved,
+  RoadmapBoardConfigResponse,
+} from '@rothenbergt/backstage-plugin-roadmap-common';
 import {
   HttpAuthService,
   UserInfoService,
@@ -27,6 +31,9 @@ export interface RouterOptions {
   userInfo: UserInfoService;
   permissions?: PermissionsService;
   cache: CacheService;
+  datasource: DatasourceType;
+  boardColumns: RoadmapBoardColumnResolved[];
+  boardConfigResponse: RoadmapBoardConfigResponse;
 }
 
 /**

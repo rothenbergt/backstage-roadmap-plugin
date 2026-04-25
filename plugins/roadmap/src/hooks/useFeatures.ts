@@ -10,19 +10,19 @@ import {
 type FeatureWithVote = Feature & { hasVoted: boolean };
 
 /**
- * Hook for fetching all features
+ * Hook for fetching board features (server-filtered list).
  */
-export const useFeatures = () => {
+export const useFeatures = (includeBeyondRetention = false) => {
   const api = useApi(roadmapApiRef);
 
   return useQuery({
-    queryKey: ['roadmap', 'features'],
+    queryKey: ['roadmap', 'features', { includeBeyondRetention }],
     queryFn: async () => {
-      const features = await api.getFeatures();
+      const features = await api.getFeatures({ includeBeyondRetention });
 
-      // Batch check if the current user has voted on any features
       const featureIds = features.map(f => f.id);
-      const hasVotedMap = await api.hasVotedBatch(featureIds);
+      const hasVotedMap =
+        featureIds.length > 0 ? await api.hasVotedBatch(featureIds) : {};
 
       const featuresWithVoted = features.map(feature => ({
         ...feature,
@@ -61,7 +61,53 @@ export const useCreateFeature = () => {
   return useMutation({
     mutationFn: (newFeature: NewFeature) => api.createFeature(newFeature),
     onSuccess: () => {
-      // Invalidate the features list to refetch it
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
+    },
+  });
+};
+
+export const useUpdateFeatureDetails = () => {
+  const api = useApi(roadmapApiRef);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      fields,
+    }: {
+      id: string;
+      fields: { title?: string; description?: string };
+    }) => api.updateFeatureDetails(id, fields),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'feature'] });
+    },
+  });
+};
+
+export const useDeleteFeature = () => {
+  const api = useApi(roadmapApiRef);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteFeature(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'feature'] });
+    },
+  });
+};
+
+export const useReorderFeatures = () => {
+  const api = useApi(roadmapApiRef);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      status,
+      orderedIds,
+    }: {
+      status: FeatureStatus;
+      orderedIds: string[];
+    }) => api.reorderFeatures(status, orderedIds),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
     },
   });
@@ -87,18 +133,7 @@ export const useUpdateFeatureStatus = () => {
         },
       );
 
-      // Also update the feature in the features list
-      queryClient.setQueryData<FeatureWithVote[]>(
-        ['roadmap', 'features'],
-        oldData => {
-          if (!oldData) return [];
-          return oldData.map(feature =>
-            feature.id === updatedFeature.id
-              ? { ...feature, ...updatedFeature }
-              : feature,
-          );
-        },
-      );
+      queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
     },
   });
 };

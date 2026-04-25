@@ -3,6 +3,8 @@ import express from 'express';
 import request from 'supertest';
 import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 import { createRouter } from '../routes/router';
+import { ConfigReader } from '@backstage/config';
+import { getBoardConfigResponse, getMergedBoardColumns } from '../boardConfig';
 
 describe('createRouter', () => {
   let app: express.Express;
@@ -12,6 +14,10 @@ describe('createRouter', () => {
       setupSchema: jest.fn().mockResolvedValue(undefined),
     } as unknown as RoadmapDatabaseClient;
 
+    const cfg = new ConfigReader({});
+    const boardColumns = getMergedBoardColumns(cfg);
+    const boardConfigResponse = getBoardConfigResponse(cfg, 'database');
+
     const router = await createRouter({
       logger: mockServices.logger.mock(),
       config: mockServices.rootConfig(),
@@ -20,6 +26,9 @@ describe('createRouter', () => {
       userInfo: mockServices.userInfo.mock(),
       permissions: mockServices.permissions.mock(),
       cache: mockServices.cache.mock(),
+      datasource: 'database',
+      boardColumns,
+      boardConfigResponse,
     });
     app = express().use(router);
   });

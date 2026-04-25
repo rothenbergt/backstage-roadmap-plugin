@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCreateFeature } from '../../hooks';
 import {
   Dialog,
@@ -43,8 +43,23 @@ export const CreateFeatureModal = ({
   const [description, setDescription] = useState('');
   const [titleError, setTitleError] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: createFeature, isPending, error } = useCreateFeature();
+
+  useEffect(() => {
+    let frameId = 0;
+    if (open) {
+      frameId = requestAnimationFrame(() => {
+        titleInputRef.current?.focus();
+      });
+    }
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [open]);
 
   // Show alert when error changes
   useEffect(() => {
@@ -132,6 +147,7 @@ export const CreateFeatureModal = ({
             error={!!titleError}
             helperText={titleError}
             disabled={isPending}
+            inputRef={titleInputRef}
             inputProps={{ maxLength: 100 }}
           />
 

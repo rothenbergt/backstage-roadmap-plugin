@@ -1,8 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   useFeature,
   useUpdateFeatureStatus,
   useAdminStatus,
+  useUpdateFeatureDetails,
+  useDeleteFeature,
+  useBoardConfig,
 } from '../../hooks';
 import { CommentSection } from './CommentSection';
 import { StatusChip, VoteButton } from '../../components';
@@ -18,17 +21,31 @@ import {
   Select,
   MenuItem,
   Grid,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
-import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
-import { parseEntityRef } from '@backstage/catalog-model';
+import {
+  FeatureStatus,
+  RoadmapUiCapabilities,
+} from '@rothenbergt/backstage-plugin-roadmap-common';
+import { parseEntityRef, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   MarkdownContent,
   Progress,
   ResponseErrorPanel,
 } from '@backstage/core-components';
-import { useApi, alertApiRef } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  alertApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 
 const useStyles = makeStyles(theme => ({
@@ -95,6 +112,13 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
   },
+  headerActions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(1),
+  },
   statusContainer: {
     display: 'flex',
     alignItems: 'center',
@@ -108,17 +132,54 @@ type FeatureDetailsDrawerProps = {
   featureId: string;
   open: boolean;
   onClose: () => void;
+  capabilities?: RoadmapUiCapabilities;
 };
+
+const defaultCapabilities: RoadmapUiCapabilities = {
+  retentionFiltering: false,
+  includeBeyondRetentionQuery: false,
+  adminEditTitleDescription: false,
+  adminDeleteFeature: false,
+  adminDeleteComment: false,
+  creatorEditDeleteSuggested: false,
+  adminReorder: false,
+};
+
+function entityRefsEqual(a: string, b: string | undefined): boolean {
+  if (!b) {
+    return false;
+  }
+  try {
+    const opts = { defaultKind: 'user' as const, defaultNamespace: 'default' };
+    return (
+      stringifyEntityRef(parseEntityRef(a, opts)) ===
+      stringifyEntityRef(parseEntityRef(b, opts))
+    );
+  } catch {
+    return a === b;
+  }
+}
 
 export const FeatureDetailsDrawer = ({
   featureId,
   open,
   onClose,
+  capabilities: capabilitiesProp,
 }: FeatureDetailsDrawerProps) => {
   const classes = useStyles();
   const alertApi = useApi(alertApiRef);
+  const identityApi = useApi(identityApiRef);
+  const caps = capabilitiesProp ?? defaultCapabilities;
+  const [userEntityRef, setUserEntityRef] = useState<string | undefined>();
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [detailsError, setDetailsError] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   const { data: feature, isLoading, error } = useFeature(featureId);
   const { data: isAdmin = false } = useAdminStatus();
+  const { data: boardConfig } = useBoardConfig();
   const {
     mutate: updateStatus,
     isPending: isUpdating,
@@ -126,6 +187,40 @@ export const FeatureDetailsDrawer = ({
     isSuccess: isUpdateSuccess,
     data: updatedFeature,
   } = useUpdateFeatureStatus();
+  const {
+    mutate: updateDetails,
+    isPending: isSavingDetails,
+    error: updateDetailsError,
+  } = useUpdateFeatureDetails();
+  const {
+    mutate: deleteFeature,
+    isPending: isDeletingFeature,
+    error: deleteFeatureError,
+  } = useDeleteFeature();
+
+  useEffect(() => {
+    identityApi.getBackstageIdentity().then(identity => {
+      setUserEntityRef(identity.userEntityRef);
+    });
+  }, [identityApi]);
+
+  const beginEditDetails = useCallback(() => {
+    if (!feature) {
+      return;
+    }
+    setTitleDraft(feature.title);
+    setDescriptionDraft(feature.description);
+    setDetailsError('');
+    setEditingDetails(true);
+  }, [feature]);
+
+  useEffect(() => {
+    if (!open) {
+      setEditingDetails(false);
+      setDetailsError('');
+      setDeleteDialogOpen(false);
+    }
+  }, [open]);
 
   // Show alert when error occurs
   useEffect(() => {
@@ -155,16 +250,48 @@ export const FeatureDetailsDrawer = ({
     }
   }, [updateError, alertApi]);
 
+  useEffect(() => {
+    if (updateDetailsError) {
+      alertApi.post({
+        message: `Failed to save feature: ${
+          updateDetailsError instanceof Error
+            ? updateDetailsError.message
+            : String(updateDetailsError)
+        }`,
+        severity: 'error',
+        display: 'transient',
+      });
+    }
+  }, [updateDetailsError, alertApi]);
+
+  useEffect(() => {
+    if (deleteFeatureError) {
+      alertApi.post({
+        message: `Failed to delete feature: ${
+          deleteFeatureError instanceof Error
+            ? deleteFeatureError.message
+            : String(deleteFeatureError)
+        }`,
+        severity: 'error',
+        display: 'transient',
+      });
+    }
+  }, [deleteFeatureError, alertApi]);
+
   // Show success message when status is updated
   useEffect(() => {
-    if (isUpdateSuccess && updatedFeature) {
+    if (isUpdateSuccess && updatedFeature && boardConfig) {
+      const column = boardConfig.columns.find(
+        c => c.status === updatedFeature.status,
+      );
+      const statusTitle = column?.title ?? updatedFeature.status;
       alertApi.post({
-        message: `Feature status updated to ${updatedFeature.status}`,
+        message: `Feature status updated to ${statusTitle}`,
         severity: 'success',
         display: 'transient',
       });
     }
-  }, [isUpdateSuccess, updatedFeature, alertApi]);
+  }, [isUpdateSuccess, updatedFeature, alertApi, boardConfig]);
 
   const handleStatusChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     const newStatus = event.target.value as FeatureStatus;
@@ -202,6 +329,54 @@ export const FeatureDetailsDrawer = ({
       );
     }
 
+    const isAuthor = entityRefsEqual(feature.author, userEntityRef);
+    const canEditDetails =
+      (isAdmin && caps.adminEditTitleDescription) ||
+      (caps.creatorEditDeleteSuggested &&
+        feature.status === FeatureStatus.Suggested &&
+        isAuthor);
+    const canDeleteFeature =
+      (isAdmin && caps.adminDeleteFeature) ||
+      (caps.creatorEditDeleteSuggested &&
+        feature.status === FeatureStatus.Suggested &&
+        isAuthor);
+
+    const handleSaveDetails = () => {
+      const title = titleDraft.trim();
+      if (!title) {
+        setDetailsError('Title is required');
+        return;
+      }
+      setDetailsError('');
+      updateDetails(
+        { id: featureId, fields: { title, description: descriptionDraft } },
+        {
+          onSuccess: () => {
+            setEditingDetails(false);
+            alertApi.post({
+              message: 'Feature updated',
+              severity: 'success',
+              display: 'transient',
+            });
+          },
+        },
+      );
+    };
+
+    const runDeleteFeature = () => {
+      deleteFeature(featureId, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          alertApi.post({
+            message: 'Feature deleted',
+            severity: 'success',
+            display: 'transient',
+          });
+          onClose();
+        },
+      });
+    };
+
     return (
       <>
         <Box className={classes.header}>
@@ -215,13 +390,71 @@ export const FeatureDetailsDrawer = ({
             <CloseIcon />
           </IconButton>
 
-          <Typography variant="h5" className={classes.title}>
-            {feature.title}
-          </Typography>
+          {editingDetails ? (
+            <>
+              <TextField
+                label="Title"
+                variant="outlined"
+                fullWidth
+                className={classes.title}
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                error={Boolean(detailsError)}
+                helperText={detailsError}
+                disabled={isSavingDetails}
+              />
+              <TextField
+                label="Description"
+                variant="outlined"
+                fullWidth
+                multiline
+                minRows={4}
+                className={classes.description}
+                value={descriptionDraft}
+                onChange={e => setDescriptionDraft(e.target.value)}
+                disabled={isSavingDetails}
+              />
+              <div className={classes.headerActions}>
+                <Button
+                  color="primary"
+                  variant="contained"
+                  disabled={isSavingDetails}
+                  onClick={handleSaveDetails}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outlined"
+                  disabled={isSavingDetails}
+                  onClick={() => setEditingDetails(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Typography variant="h5" className={classes.title}>
+                {feature.title}
+              </Typography>
 
-          <div className={classes.description}>
-            <MarkdownContent content={feature.description} />
-          </div>
+              <div className={classes.description}>
+                <MarkdownContent content={feature.description} />
+              </div>
+              {canEditDetails && (
+                <div className={classes.headerActions}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    onClick={beginEditDetails}
+                  >
+                    Edit title & description
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
 
           <Grid container spacing={2} className={classes.metaRow}>
             <Grid item xs={6}>
@@ -279,7 +512,7 @@ export const FeatureDetailsDrawer = ({
             <Box className={classes.statusContainer}>
               <StatusChip status={feature.status} />
 
-              {isAdmin && (
+              {isAdmin && boardConfig && (
                 <FormControl
                   variant="outlined"
                   size="small"
@@ -295,16 +528,26 @@ export const FeatureDetailsDrawer = ({
                     label="Change Status"
                     disabled={isUpdating}
                   >
-                    <MenuItem value={FeatureStatus.Suggested}>
-                      Suggested
-                    </MenuItem>
-                    <MenuItem value={FeatureStatus.Planned}>Planned</MenuItem>
-                    <MenuItem value={FeatureStatus.Completed}>
-                      Completed
-                    </MenuItem>
-                    <MenuItem value={FeatureStatus.Declined}>Declined</MenuItem>
+                    {boardConfig.columns
+                      .filter(col => col.visible)
+                      .map(col => (
+                        <MenuItem key={col.status} value={col.status}>
+                          {col.title}
+                        </MenuItem>
+                      ))}
                   </Select>
                 </FormControl>
+              )}
+              {canDeleteFeature && (
+                <Button
+                  color="secondary"
+                  variant="outlined"
+                  disabled={isDeletingFeature || editingDetails}
+                  onClick={() => setDeleteDialogOpen(true)}
+                  style={{ marginLeft: '16px' }}
+                >
+                  Delete feature
+                </Button>
               )}
             </Box>
           </Box>
@@ -312,9 +555,40 @@ export const FeatureDetailsDrawer = ({
           <Divider className={classes.divider} />
 
           <Box className={classes.section}>
-            <CommentSection featureId={featureId} />
+            <CommentSection
+              featureId={featureId}
+              canDeleteComments={Boolean(isAdmin && caps.adminDeleteComment)}
+            />
           </Box>
         </Box>
+
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => !isDeletingFeature && setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>Delete feature?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This removes the feature and its comments. This cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeletingFeature}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="secondary"
+              variant="contained"
+              disabled={isDeletingFeature}
+              onClick={runDeleteFeature}
+            >
+              {isDeletingFeature ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </>
     );
   };

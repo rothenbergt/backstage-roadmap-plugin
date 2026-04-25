@@ -36,3 +36,17 @@ export const useAddComment = (featureId: string) => {
     },
   });
 };
+
+export const useDeleteComment = (featureId: string) => {
+  const api = useApi(roadmapApiRef);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId: string) => api.deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['roadmap', 'comments', featureId],
+      });
+    },
+  });
+};
