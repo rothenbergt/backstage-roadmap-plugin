@@ -2,6 +2,7 @@ import {
   coreServices,
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
+import { notificationService } from '@backstage/plugin-notifications-node';
 import { createRouter } from './routes';
 import { RoadmapDatasource } from './types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
@@ -27,6 +28,7 @@ export const roadmapPlugin = createBackendPlugin({
         httpAuth: coreServices.httpAuth,
         permissions: coreServices.permissions,
         cache: coreServices.cache,
+        notifications: notificationService,
       },
       async init({
         httpRouter,
@@ -37,6 +39,7 @@ export const roadmapPlugin = createBackendPlugin({
         httpAuth,
         permissions,
         cache,
+        notifications,
       }) {
         const datasource = getDatasource(config);
         const permissionEnabled = isPermissionEnabled(config);
@@ -75,6 +78,7 @@ export const roadmapPlugin = createBackendPlugin({
             datasource,
             boardColumns,
             boardConfigResponse,
+            notifications,
           }),
         );
         httpRouter.addAuthPolicy({

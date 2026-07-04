@@ -277,4 +277,115 @@ describe('featuresRouter', () => {
       expect(response.status).toBe(403);
     });
   });
+
+  describe('notifications', () => {
+    const baseFeature = {
+      id: '7',
+      title: 'Dark mode',
+      description: 'Please',
+      votes: 0,
+      author: 'user:default/author',
+      created_at: '2024-01-01 00:00:00',
+      updated_at: '2024-01-01 00:00:00',
+    };
+
+    it('notifies admins when a feature is created, excluding the author', async () => {
+      const send = jest.fn().mockResolvedValue(undefined);
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+      const mockDb = createMockDb();
+      mockDb.addFeature.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Suggested,
+        author: 'user:default/admin',
+      });
+      const cfg = new ConfigReader({
+        roadmap: {
+          adminUsers: ['user:default/admin', 'user:default/admin2'],
+        },
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({
+          userInfo,
+          db: mockDb,
+          config: cfg,
+          notifications: { send },
+        }),
+      ));
+
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
+      });
+
+      expect(response.status).toBe(201);
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipients: { type: 'entity', entityRef: ['user:default/admin2'] },
+          payload: expect.objectContaining({ topic: 'new-features' }),
+        }),
+      );
+    });
+
+    it('notifies the author on status change by an admin', async () => {
+      const send = jest.fn().mockResolvedValue(undefined);
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+      const mockDb = createMockDb();
+      mockDb.getFeatureById.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Suggested,
+      });
+      mockDb.updateFeatureStatus.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Planned,
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({ userInfo, db: mockDb, notifications: { send } }),
+      ));
+
+      const response = await fetch(`${baseUrl}/7/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: FeatureStatus.Planned }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipients: { type: 'entity', entityRef: 'user:default/author' },
+          payload: expect.objectContaining({ topic: 'status-changes' }),
+        }),
+      );
+    });
+
+    it('does not fail the request when the notification send rejects', async () => {
+      const send = jest.fn().mockRejectedValue(new Error('unavailable'));
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+      const mockDb = createMockDb();
+      mockDb.addFeature.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Suggested,
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({ userInfo, db: mockDb, notifications: { send } }),
+      ));
+
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
+      });
+
+      expect(response.status).toBe(201);
+    });
+  });
 });

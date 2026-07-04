@@ -47,19 +47,24 @@
     "react-use": "^17.2.4"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0",
+    "react-router-dom": "6.0.0-beta.0 || ^6.3.0"
   },
   "devDependencies": {
     "@backstage/cli": "^0.36.3",
     "@backstage/core-app-api": "^1.20.2",
     "@backstage/dev-utils": "^1.1.24",
+    "@backstage/plugin-notifications": "^0.5.18",
     "@backstage/plugin-permission-common": "^0.9.9",
+    "@backstage/plugin-search": "^1.7.5",
+    "@backstage/plugin-search-react": "^1.11.5",
     "@backstage/test-utils": "^1.7.19",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.0.0",
     "msw": "^1.0.0",
-    "react": "^18.0.0"
+    "react": "^18.0.0",
+    "react-router-dom": "^6.3.0"
   },
   "files": [
     "dist"

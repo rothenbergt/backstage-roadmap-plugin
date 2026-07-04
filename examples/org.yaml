@@ -15,3 +15,12 @@ metadata:
 spec:
   type: team
   children: []
+---
+# A second user so roadmap notifications can be demoed locally: the guest
+# author is excluded from their own notifications, this user is not.
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: roadmap-admin
+spec:
+  memberOf: [guests]

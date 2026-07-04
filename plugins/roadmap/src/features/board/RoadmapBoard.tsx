@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   useFeatures,
   useBoardConfig,
@@ -178,9 +179,10 @@ export const RoadmapBoard = () => {
   } = useFeatures(includeBeyondRetention);
   const { data: isAdmin } = useAdminStatus();
   const { mutate: reorder } = useReorderFeatures();
-  const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(
-    null,
-  );
+  // The `feature` search param is the source of truth for the details drawer,
+  // so notification and search-result links can deep-link straight to a feature.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedFeatureId = searchParams.get('feature');
 
   const visibleColumns = useMemo(() => {
     if (!boardConfig?.columns) return [];
@@ -230,12 +232,22 @@ export const RoadmapBoard = () => {
   );
 
   const handleFeatureClick = (featureId: string) => {
-    setSelectedFeatureId(featureId);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.set('feature', featureId);
+      return params;
+    });
   };
 
-  // Handle drawer close
   const handleDrawerClose = () => {
-    setSelectedFeatureId(null);
+    setSearchParams(
+      prev => {
+        const params = new URLSearchParams(prev);
+        params.delete('feature');
+        return params;
+      },
+      { replace: true },
+    );
   };
 
   if (configLoading || featuresLoading) {

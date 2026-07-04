@@ -32,6 +32,9 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 - 📊 Visual roadmap board
 - 🗳️ Voting system
 - 💬 Comment section for each feature
+- 🔔 Backstage notifications for status changes, comments, and new suggestions
+- 🔍 (Optional) Backstage search integration via a collator module
+- 🔗 Deep links: `/roadmap?feature=<id>` opens a feature directly
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
 - 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
@@ -89,6 +92,56 @@ How they resolve depends on whether the Backstage permission framework is enable
 - **Framework enabled:** your permission policy decides. You must have `@backstage/plugin-permission-backend` **and a policy** installed (e.g. the allow-all policy module, or your own policy that allows `roadmap.create` / `roadmap.admin`).
 
 > ⚠️ **Gotcha:** with `permission.enabled: true` but no permission backend or a policy that denies by default, the Suggest Feature button is hidden for **everyone** — including users in `roadmap.adminUsers`. That list only short-circuits the roadmap backend's own checks; the frontend button goes through the permission framework.
+
+### Notifications
+
+If the [Backstage notifications plugin](https://backstage.io/docs/notifications/) is installed, the roadmap sends notifications automatically. No extra configuration is needed, and the roadmap works unchanged without it.
+
+| Event                         | Who is notified                  | Topic            |
+| ----------------------------- | -------------------------------- | ---------------- |
+| A feature's status changes    | The feature's author             | `status-changes` |
+| Someone comments on a feature | The feature's author             | `comments`       |
+| A new feature is suggested    | Everyone in `roadmap.adminUsers` | `new-features`   |
+
+Details worth knowing:
+
+- Users are never notified about their own actions (an admin moving their own suggestion, an author commenting on their own feature, etc.).
+- Each event uses its own topic, so users can mute individual topics (or the whole roadmap plugin) in their Backstage notification settings. No custom settings needed.
+- Notification links point at `/roadmap?feature=<id>`, which opens the feature's details drawer directly.
+
+#### Why new-suggestion recipients come from config, not the permission framework
+
+You might expect "notify the admins" to ask the permission framework who the admins are. It can't, and this is a limitation of core Backstage itself, not of this plugin.
+
+The permission framework answers exactly one kind of question: "is the user making this request allowed to do this thing?" That works great for gating admin actions, and this plugin uses it that way: when the framework is enabled, every status change, edit, and delete is checked against `roadmap.admin` before it happens.
+
+What the framework cannot answer is "give me the list of everyone who is an admin." That list does not exist anywhere. Who counts as an admin is decided by your permission policy, which is code you write (or an RBAC plugin provides), and it can decide however it wants: group membership, resource ownership, an external system, anything. The core interface (`PermissionEvaluator` in `@backstage/plugin-permission-common`) only exposes per-request decisions, so there is nothing to enumerate. Upstream plugins hit the same wall, which is why announcements broadcasts to everyone rather than targeting a subset.
+
+So notifications need their own answer for "who cares about new suggestions", and that is `roadmap.adminUsers`. The good news is it accepts **group refs**, and the notifications backend expands group membership from the catalog:
+
+```yaml
+roadmap:
+  adminUsers:
+    - group:default/devex-team
+```
+
+If you use an RBAC plugin, its roles are usually bound to a catalog group already, so point `adminUsers` at that same group and membership stays managed in one place. The permission framework still decides what those admins may do; the config just says who gets the ping.
+
+### Search
+
+Roadmap features can be indexed into Backstage global search with the optional collator module:
+
+```
+yarn add @rothenbergt/backstage-plugin-search-backend-module-roadmap --cwd packages/backend
+```
+
+```typescript
+backend.add(
+  import('@rothenbergt/backstage-plugin-search-backend-module-roadmap'),
+);
+```
+
+See the [module README](plugins/search-backend-module-roadmap/README.md) for schedule configuration.
 
 ### Board columns (labels and visibility)
 
@@ -197,7 +250,10 @@ We welcome contributions! Here's how to get started:
 
 1. Fork and clone the repository
 2. Install dependencies: `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime; otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
-3. Start the dev environment: `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, and an allow-all permission policy)
+3. Start the dev environment: `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, an allow-all permission policy, plus the catalog, notifications, signals, and search backends so everything is testable locally)
+
+   Testing notifications locally: you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
+
 4. Make your changes
 5. Run tests: `yarn test:all`
 6. Run lint: `yarn lint:all`

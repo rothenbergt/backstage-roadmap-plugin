@@ -3,6 +3,8 @@ import Router from 'express-promise-router';
 import { RouterOptions } from './router';
 import { CommentService } from '../services/CommentService';
 import { PermissionService } from '../services/PermissionService';
+import { RoadmapNotificationService } from '../services/RoadmapNotificationService';
+import { getAdminUsers } from '../config';
 import { InputError, NotAllowedError } from '@backstage/errors';
 
 /**
@@ -15,6 +17,13 @@ export function commentsRouter(options: RouterOptions): express.Router {
   // Initialize services
   const commentService = new CommentService(db, logger, datasource);
   const permissionService = new PermissionService(options);
+  const roadmapNotifications = options.notifications
+    ? new RoadmapNotificationService(
+        options.notifications,
+        logger,
+        getAdminUsers(options.config),
+      )
+    : undefined;
 
   // Add a comment to a feature
   router.post('/', async (req, res, next) => {
@@ -27,6 +36,21 @@ export function commentsRouter(options: RouterOptions): express.Router {
         text,
         author: username,
       });
+
+      if (roadmapNotifications) {
+        // Fire-and-forget: neither the feature lookup nor the send may fail
+        // the comment request. Uses the request's featureId because the
+        // database datasource returns the column name feature_id instead.
+        db.getFeatureById(featureId)
+          .then(feature =>
+            roadmapNotifications.notifyCommentAdded(feature, username),
+          )
+          .catch(error => {
+            logger.warn(
+              `Failed to send comment notification for feature ${featureId}: ${error}`,
+            );
+          });
+      }
 
       res.status(201).json(comment);
     } catch (error) {
