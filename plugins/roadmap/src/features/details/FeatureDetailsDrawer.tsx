@@ -20,7 +20,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
+  Tooltip,
   TextField,
   Button,
   Dialog,
@@ -31,6 +31,8 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import {
   FeatureStatus,
   RoadmapUiCapabilities,
@@ -50,17 +52,20 @@ import { EntityDisplayName } from '@backstage/plugin-catalog-react';
 
 const useStyles = makeStyles(theme => ({
   drawer: {
-    width: 550,
+    width: 560,
     maxWidth: '100%',
   },
   header: {
     padding: theme.spacing(3),
     position: 'relative',
   },
-  closeButton: {
+  headerButtons: {
     position: 'absolute',
     right: theme.spacing(1),
     top: theme.spacing(1),
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
   },
   content: {
     padding: theme.spacing(0, 3, 3),
@@ -80,23 +85,20 @@ const useStyles = makeStyles(theme => ({
       margin: 0,
     },
   },
-  metaRow: {
+  chipRow: {
+    marginBottom: theme.spacing(1.5),
+  },
+  metaLine: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: theme.spacing(3),
-    marginBottom: theme.spacing(3),
-  },
-  metaItem: {
-    marginRight: theme.spacing(3),
-  },
-  metaLabel: {
-    fontSize: '0.75rem',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing(0.75),
+    marginTop: theme.spacing(2),
     color: theme.palette.text.secondary,
-    marginBottom: theme.spacing(0.5),
+    fontSize: '0.8rem',
   },
-  metaValue: {
-    fontSize: '0.875rem',
+  metaSeparator: {
+    color: theme.palette.text.hint,
   },
   divider: {
     margin: theme.spacing(2, 0),
@@ -104,13 +106,23 @@ const useStyles = makeStyles(theme => ({
   statusActions: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: theme.spacing(1.5),
+    marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2),
-    padding: theme.spacing(2, 0),
+    padding: theme.spacing(1.5, 2),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 10,
   },
-  voteContainer: {
+  voteLabel: {
+    fontSize: '0.8rem',
+    color: theme.palette.text.secondary,
+  },
+  adminControls: {
     display: 'flex',
     alignItems: 'center',
+    gap: theme.spacing(1),
+    marginLeft: 'auto',
   },
   headerActions: {
     display: 'flex',
@@ -118,13 +130,6 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(1),
-  },
-  statusContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    '& > *:first-child': {
-      marginRight: theme.spacing(1),
-    },
   },
 }));
 
@@ -380,15 +385,22 @@ export const FeatureDetailsDrawer = ({
     return (
       <>
         <Box className={classes.header}>
-          <IconButton
-            className={classes.closeButton}
-            edge="end"
-            onClick={onClose}
-            aria-label="close"
-            size="small"
-          >
-            <CloseIcon />
-          </IconButton>
+          <Box className={classes.headerButtons}>
+            {canEditDetails && !editingDetails && (
+              <Tooltip title="Edit title & description">
+                <IconButton
+                  onClick={beginEditDetails}
+                  aria-label="Edit title and description"
+                  size="small"
+                >
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <IconButton onClick={onClose} aria-label="close" size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
 
           {editingDetails ? (
             <>
@@ -434,6 +446,10 @@ export const FeatureDetailsDrawer = ({
             </>
           ) : (
             <>
+              <div className={classes.chipRow}>
+                <StatusChip status={feature.status} />
+              </div>
+
               <Typography variant="h5" className={classes.title}>
                 {feature.title}
               </Typography>
@@ -441,115 +457,87 @@ export const FeatureDetailsDrawer = ({
               <div className={classes.description}>
                 <MarkdownContent content={feature.description} />
               </div>
-              {canEditDetails && (
-                <div className={classes.headerActions}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                    onClick={beginEditDetails}
-                  >
-                    Edit title & description
-                  </Button>
-                </div>
-              )}
             </>
           )}
 
-          <Grid container spacing={2} className={classes.metaRow}>
-            <Grid item xs={6}>
-              <div className={classes.metaItem}>
-                <Typography variant="body2" className={classes.metaLabel}>
-                  Suggested by
-                </Typography>
-                <Typography variant="body2" className={classes.metaValue}>
-                  <EntityDisplayName
-                    entityRef={parseEntityRef(feature.author, {
-                      defaultKind: 'user',
-                      defaultNamespace: 'default',
-                    })}
-                    defaultKind="user"
-                  />
-                </Typography>
-              </div>
-            </Grid>
-            <Grid item xs={6}>
-              <div className={classes.metaItem}>
-                <Typography variant="body2" className={classes.metaLabel}>
-                  Created
-                </Typography>
-                <Typography variant="body2" className={classes.metaValue}>
-                  {formatDate(feature.created_at)}
-                </Typography>
-              </div>
-              {feature.created_at !== feature.updated_at && (
-                <div className={classes.metaItem} style={{ marginTop: '8px' }}>
-                  <Typography variant="body2" className={classes.metaLabel}>
-                    Updated
-                  </Typography>
-                  <Typography variant="body2" className={classes.metaValue}>
-                    {formatDate(feature.updated_at)}
-                  </Typography>
-                </div>
-              )}
-            </Grid>
-          </Grid>
+          <Typography component="div" className={classes.metaLine}>
+            <span>
+              Suggested by{' '}
+              <EntityDisplayName
+                entityRef={parseEntityRef(feature.author, {
+                  defaultKind: 'user',
+                  defaultNamespace: 'default',
+                })}
+                defaultKind="user"
+              />
+            </span>
+            <span className={classes.metaSeparator}>·</span>
+            <span>Created {formatDate(feature.created_at)}</span>
+            {feature.created_at !== feature.updated_at && (
+              <>
+                <span className={classes.metaSeparator}>·</span>
+                <span>Updated {formatDate(feature.updated_at)}</span>
+              </>
+            )}
+          </Typography>
         </Box>
 
         <Divider />
 
         <Box className={classes.content}>
           <Box className={classes.statusActions}>
-            <Box className={classes.voteContainer}>
-              <VoteButton
-                featureId={feature.id}
-                hasVoted={feature.hasVoted}
-                voteCount={feature.votes}
-                size="large"
-              />
-            </Box>
+            <VoteButton
+              featureId={feature.id}
+              hasVoted={feature.hasVoted}
+              voteCount={feature.votes}
+              size="medium"
+            />
+            <Typography className={classes.voteLabel}>
+              {feature.hasVoted
+                ? 'You voted for this feature'
+                : 'Vote to help prioritize'}
+            </Typography>
 
-            <Box className={classes.statusContainer}>
-              <StatusChip status={feature.status} />
-
-              {isAdmin && boardConfig && (
-                <FormControl
-                  variant="outlined"
-                  size="small"
-                  style={{ minWidth: 150, marginLeft: '16px' }}
-                >
-                  <InputLabel id="status-select-label">
-                    Change Status
-                  </InputLabel>
-                  <Select
-                    labelId="status-select-label"
-                    value={feature.status}
-                    onChange={handleStatusChange}
-                    label="Change Status"
-                    disabled={isUpdating}
+            {((isAdmin && boardConfig) || canDeleteFeature) && (
+              <Box className={classes.adminControls}>
+                {isAdmin && boardConfig && (
+                  <FormControl
+                    variant="outlined"
+                    size="small"
+                    style={{ minWidth: 150 }}
                   >
-                    {boardConfig.columns
-                      .filter(col => col.visible)
-                      .map(col => (
-                        <MenuItem key={col.status} value={col.status}>
-                          {col.title}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                </FormControl>
-              )}
-              {canDeleteFeature && (
-                <Button
-                  color="secondary"
-                  variant="outlined"
-                  disabled={isDeletingFeature || editingDetails}
-                  onClick={() => setDeleteDialogOpen(true)}
-                  style={{ marginLeft: '16px' }}
-                >
-                  Delete feature
-                </Button>
-              )}
-            </Box>
+                    <InputLabel id="status-select-label">Status</InputLabel>
+                    <Select
+                      labelId="status-select-label"
+                      value={feature.status}
+                      onChange={handleStatusChange}
+                      label="Status"
+                      disabled={isUpdating}
+                    >
+                      {boardConfig.columns
+                        .filter(col => col.visible)
+                        .map(col => (
+                          <MenuItem key={col.status} value={col.status}>
+                            {col.title}
+                          </MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+                )}
+                {canDeleteFeature && (
+                  <Tooltip title="Delete feature">
+                    <IconButton
+                      size="small"
+                      aria-label="Delete feature"
+                      disabled={isDeletingFeature || editingDetails}
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <DeleteOutlineIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            )}
           </Box>
 
           <Divider className={classes.divider} />

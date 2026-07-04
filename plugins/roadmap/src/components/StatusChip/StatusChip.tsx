@@ -12,7 +12,6 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.7rem',
     height: 24,
     borderRadius: 12,
-    boxShadow: theme.shadows[1],
     '& .MuiChip-icon': {
       marginLeft: 8,
       marginRight: -4,
@@ -26,31 +25,46 @@ const useStyles = makeStyles(theme => ({
     height: 28,
     fontSize: '0.75rem',
   },
-  // Status-specific styling using theme colors
+  // Status-specific styling using theme colors; lighter text in dark mode for contrast
   suggested: {
-    backgroundColor: alpha(theme.palette.warning.main, 0.15),
-    color: theme.palette.warning.dark,
-    borderColor: alpha(theme.palette.warning.main, 0.5),
+    backgroundColor: alpha(theme.palette.warning.main, 0.12),
+    color:
+      theme.palette.type === 'dark'
+        ? theme.palette.warning.light
+        : theme.palette.warning.dark,
+    borderColor: alpha(theme.palette.warning.main, 0.4),
   },
   planned: {
-    backgroundColor: alpha(theme.palette.info.main, 0.15),
-    color: theme.palette.info.dark,
-    borderColor: alpha(theme.palette.info.main, 0.5),
+    backgroundColor: alpha(theme.palette.info.main, 0.12),
+    color:
+      theme.palette.type === 'dark'
+        ? theme.palette.info.light
+        : theme.palette.info.dark,
+    borderColor: alpha(theme.palette.info.main, 0.4),
   },
   inProgress: {
-    backgroundColor: alpha(theme.palette.secondary.main, 0.15),
-    color: theme.palette.secondary.dark,
-    borderColor: alpha(theme.palette.secondary.main, 0.5),
+    backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+    color:
+      theme.palette.type === 'dark'
+        ? theme.palette.secondary.light
+        : theme.palette.secondary.dark,
+    borderColor: alpha(theme.palette.secondary.main, 0.4),
   },
   completed: {
-    backgroundColor: alpha(theme.palette.success.main, 0.15),
-    color: theme.palette.success.dark,
-    borderColor: alpha(theme.palette.success.main, 0.5),
+    backgroundColor: alpha(theme.palette.success.main, 0.12),
+    color:
+      theme.palette.type === 'dark'
+        ? theme.palette.success.light
+        : theme.palette.success.dark,
+    borderColor: alpha(theme.palette.success.main, 0.4),
   },
   declined: {
-    backgroundColor: alpha(theme.palette.error.main, 0.15),
-    color: theme.palette.error.dark,
-    borderColor: alpha(theme.palette.error.main, 0.5),
+    backgroundColor: alpha(theme.palette.error.main, 0.12),
+    color:
+      theme.palette.type === 'dark'
+        ? theme.palette.error.light
+        : theme.palette.error.dark,
+    borderColor: alpha(theme.palette.error.main, 0.4),
   },
   default: {
     backgroundColor: alpha(theme.palette.grey[500], 0.15),

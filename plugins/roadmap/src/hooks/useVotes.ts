@@ -1,4 +1,4 @@
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { roadmapApiRef } from '../api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Feature } from '@rothenbergt/backstage-plugin-roadmap-common';
@@ -17,6 +17,7 @@ interface MutationContext {
  */
 export const useToggleVote = () => {
   const apiInstance = useApi(roadmapApiRef);
+  const alertApi = useApi(alertApiRef);
   const queryClient = useQueryClient();
 
   return useMutation<unknown, unknown, string, MutationContext>({
@@ -83,7 +84,14 @@ export const useToggleVote = () => {
     },
 
     // If the mutation fails, use the context we saved to roll back
-    onError: (_err, featureId, context) => {
+    onError: (err, featureId, context) => {
+      alertApi.post({
+        message: `Failed to save your vote: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        severity: 'error',
+        display: 'transient',
+      });
       if (context?.previousFeatures) {
         queryClient.setQueryData(
           ['roadmap', 'features'],

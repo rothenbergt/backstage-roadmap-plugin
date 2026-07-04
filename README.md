@@ -66,14 +66,29 @@ After installation, navigate to the `/roadmap` route in your Backstage instance.
 
 ## ⚙️ Configuration
 
-If you aren't utilizing the Backstage permission framework, add the following to your `app-config.yaml` to enable the Admin Functions for specific users:
+### Permissions
 
-```yaml
-roadmap:
-  adminUsers:
-    - user:default/admin1
-    - user:default/admin2
-```
+The plugin defines two permissions:
+
+| Permission       | What it gates                                                               |
+| ---------------- | --------------------------------------------------------------------------- |
+| `roadmap.create` | The **Suggest Feature** button and the create-feature endpoint              |
+| `roadmap.admin`  | Admin actions: changing status, editing/deleting features, reordering, etc. |
+
+How they resolve depends on whether the Backstage permission framework is enabled (`permission.enabled` in `app-config.yaml`):
+
+- **Framework disabled (or unset):** everyone can suggest features. Admin access is granted via the `roadmap.adminUsers` list:
+
+  ```yaml
+  roadmap:
+    adminUsers:
+      - user:default/admin1
+      - user:default/admin2
+  ```
+
+- **Framework enabled:** your permission policy decides. You must have `@backstage/plugin-permission-backend` **and a policy** installed (e.g. the allow-all policy module, or your own policy that allows `roadmap.create` / `roadmap.admin`).
+
+> ⚠️ **Gotcha:** with `permission.enabled: true` but no permission backend or a policy that denies by default, the Suggest Feature button is hidden for **everyone** — including users in `roadmap.adminUsers`. That list only short-circuits the roadmap backend's own checks; the frontend button goes through the permission framework.
 
 ### Board columns (labels and visibility)
 
@@ -182,9 +197,10 @@ We welcome contributions! Here's how to get started:
 
 1. Fork and clone the repository
 2. Install dependencies: `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime; otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
-3. Make your changes
-4. Run tests: `yarn test:all`
-5. Run lint: `yarn lint:all`
+3. Start the dev environment: `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, and an allow-all permission policy)
+4. Make your changes
+5. Run tests: `yarn test:all`
+6. Run lint: `yarn lint:all`
 
 **`jwa` resolutions:** `jws` v3 depends on `jwa` 1.x and `jws` v4 on `jwa` 2.x, so root `package.json` pins both majors separately. Replacing them with one version would break one of those stacks unless upstream upgrades.
 
