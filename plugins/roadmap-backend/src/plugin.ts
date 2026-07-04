@@ -5,6 +5,7 @@ import {
 import { notificationService } from '@backstage/plugin-notifications-node';
 import { eventsServiceRef } from '@backstage/plugin-events-node';
 import { signalsServiceRef } from '@backstage/plugin-signals-node';
+import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { createRouter } from './routes';
 import { RoadmapDatasource } from './types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
@@ -31,6 +32,7 @@ export const roadmapPlugin = createBackendPlugin({
         userInfo: coreServices.userInfo,
         httpAuth: coreServices.httpAuth,
         permissions: coreServices.permissions,
+        permissionsRegistry: coreServices.permissionsRegistry,
         cache: coreServices.cache,
         notifications: notificationService,
         events: eventsServiceRef,
@@ -44,11 +46,14 @@ export const roadmapPlugin = createBackendPlugin({
         userInfo,
         httpAuth,
         permissions,
+        permissionsRegistry,
         cache,
         notifications,
         events,
         signals,
       }) {
+        permissionsRegistry.addPermissions(roadmapPermissions);
+
         const datasource = getDatasource(config);
         const permissionEnabled = isPermissionEnabled(config);
         const boardColumns = getMergedBoardColumns(config);

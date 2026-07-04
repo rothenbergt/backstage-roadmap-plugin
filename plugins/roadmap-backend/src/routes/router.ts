@@ -13,11 +13,9 @@ import {
   UserInfoService,
   PermissionsService,
 } from '@backstage/backend-plugin-api';
-import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
 import { NotificationService } from '@backstage/plugin-notifications-node';
 import { EventsService } from '@backstage/plugin-events-node';
 import { SignalsService } from '@backstage/plugin-signals-node';
-import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { commentsRouter } from './commentsRouter';
 import { featuresRouter } from './featuresRouter';
 import { votesRouter } from './votesRouter';
@@ -61,18 +59,11 @@ export async function createRouter(
   const router = Router();
   router.use(express.json());
 
-  // Set up permission integration for Backstage permission framework
-  const permissionIntegrationRouter = createPermissionIntegrationRouter({
-    permissions: roadmapPermissions,
-  });
-
   // Health check endpoint
   router.get('/health', (_, response) => {
     logger.info('PONG!');
     response.json({ status: 'ok' });
   });
-
-  router.use(permissionIntegrationRouter);
 
   // Register sub-routers
   router.use('/comments', commentsRouter(options));

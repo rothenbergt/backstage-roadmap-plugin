@@ -7608,7 +7608,6 @@ __metadata:
     "@backstage/plugin-permission-backend": "npm:^0.7.2"
     "@backstage/plugin-permission-backend-module-allow-all-policy": "npm:^0.2.10"
     "@backstage/plugin-permission-common": "npm:^0.9.9"
-    "@backstage/plugin-permission-node": "npm:^0.11.1"
     "@backstage/plugin-search-backend": "npm:^2.1.3"
     "@backstage/plugin-signals-backend": "npm:^0.3.16"
     "@backstage/plugin-signals-node": "npm:^0.2.2"
