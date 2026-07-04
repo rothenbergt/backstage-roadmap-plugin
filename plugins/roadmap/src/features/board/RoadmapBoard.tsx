@@ -13,10 +13,10 @@ import {
   ContentHeader,
   SupportButton,
   ResponseErrorPanel,
-  Progress,
   Header,
   Page,
 } from '@backstage/core-components';
+import { Skeleton } from '@material-ui/lab';
 import {
   Typography,
   Box,
@@ -25,17 +25,12 @@ import {
   Switch,
   FormControlLabel,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import {
   Feature,
   FeatureStatus,
   RoadmapBoardColumnResolved,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
-import LightbulbIcon from '@material-ui/icons/EmojiObjects';
-import EventNoteIcon from '@material-ui/icons/EventNote';
-import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
-import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
-import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import IconButton from '@material-ui/core/IconButton';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
@@ -48,9 +43,9 @@ const useStyles = makeStyles(theme => ({
   },
   boardContainer: {
     display: 'flex',
-    padding: theme.spacing(2),
+    padding: theme.spacing(1, 0, 2),
     height: 'calc(100vh - 200px)',
-    gap: theme.spacing(3),
+    gap: theme.spacing(2),
   },
   /** Equal share of row width for any visible column count (1–5); minWidth allows shrink with gap. */
   columnWrapper: {
@@ -58,103 +53,86 @@ const useStyles = makeStyles(theme => ({
     minWidth: 0,
   },
   columnHeader: {
-    padding: theme.spacing(1.5),
-    borderTopLeftRadius: theme.shape.borderRadius,
-    borderTopRightRadius: theme.shape.borderRadius,
+    padding: theme.spacing(1.5, 2),
     display: 'flex',
     alignItems: 'center',
-    borderBottom: 'none',
+    gap: theme.spacing(1),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  columnTitle: {
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    letterSpacing: 0.2,
+    color: theme.palette.text.primary,
   },
   columnContent: {
     padding: theme.spacing(1.5),
-    height: 'calc(100% - 56px)',
+    flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
   },
   column: {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: theme.shadows[1],
+    borderRadius: 12,
+    backgroundColor:
+      theme.palette.type === 'dark'
+        ? alpha(theme.palette.background.paper, 0.6)
+        : alpha(theme.palette.background.default, 0.6),
     border: `1px solid ${theme.palette.divider}`,
   },
-  iconMargin: {
-    marginRight: theme.spacing(1.5),
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 32,
-    height: 32,
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    flexShrink: 0,
   },
   statusCount: {
     marginLeft: 'auto',
-    backgroundColor: theme.palette.background.default,
-    borderRadius: '12px',
-    padding: theme.spacing(0.5, 1.5),
+    color: theme.palette.text.secondary,
     fontSize: '0.75rem',
-    fontWeight: 'bold',
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 10,
+    padding: theme.spacing(0.25, 1),
     minWidth: 24,
     textAlign: 'center',
   },
-  // Status-specific column header colors
-  suggestedHeader: {
-    backgroundColor: alpha(theme.palette.warning.main, 0.12),
-    color: theme.palette.warning.dark,
-    '& $iconMargin': {
-      color: theme.palette.warning.main,
-    },
-  },
-  plannedHeader: {
-    backgroundColor: alpha(theme.palette.info.main, 0.12),
-    color: theme.palette.info.dark,
-    '& $iconMargin': {
-      color: theme.palette.info.main,
-    },
-  },
-  inProgressHeader: {
-    backgroundColor: alpha(theme.palette.secondary.main, 0.12),
-    color: theme.palette.secondary.dark,
-    '& $iconMargin': {
-      color: theme.palette.secondary.main,
-    },
-  },
-  completedHeader: {
-    backgroundColor: alpha(theme.palette.success.main, 0.12),
-    color: theme.palette.success.dark,
-    '& $iconMargin': {
-      color: theme.palette.success.main,
-    },
-  },
-  declinedHeader: {
-    backgroundColor: alpha(theme.palette.error.main, 0.12),
-    color: theme.palette.error.dark,
-    '& $iconMargin': {
-      color: theme.palette.error.main,
-    },
-  },
   emptyState: {
-    padding: theme.spacing(4),
+    padding: theme.spacing(3, 2),
     textAlign: 'center',
-    color: theme.palette.text.secondary,
-    backgroundColor: alpha(theme.palette.background.default, 0.5),
-    borderRadius: theme.spacing(1),
-    height: '100%',
+    color: theme.palette.text.hint,
+    border: `1px dashed ${theme.palette.divider}`,
+    borderRadius: 10,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowWithReorder: {
-    display: 'flex',
-    alignItems: 'stretch',
-    gap: theme.spacing(0.5),
-    marginBottom: theme.spacing(1),
+    position: 'relative',
+    /* Reorder arrows stay hidden until the row is hovered or focused */
+    '&:hover $reorderRail, &:focus-within $reorderRail': {
+      opacity: 1,
+    },
   },
+  /** Overlays the card's right edge so cards keep full column width. */
   reorderRail: {
+    position: 'absolute',
+    right: theme.spacing(1),
+    top: '50%',
+    transform: 'translateY(-50%)',
+    zIndex: 1,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
+    opacity: 0,
+    transition: 'opacity 0.15s ease',
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
   },
   /** Groups primary header actions so spacing is reliable inside ContentHeader. */
   contentHeaderActions: {
@@ -171,33 +149,22 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const STATUS_ICONS: Record<FeatureStatus, JSX.Element> = {
-  [FeatureStatus.Suggested]: <LightbulbIcon />,
-  [FeatureStatus.Planned]: <EventNoteIcon />,
-  [FeatureStatus.InProgress]: <HourglassEmptyIcon />,
-  [FeatureStatus.Completed]: <CheckCircleOutlineIcon />,
-  [FeatureStatus.Declined]: <CancelOutlinedIcon />,
-};
-
-const STATUS_HEADER_CLASS: Record<
-  FeatureStatus,
-  | 'suggestedHeader'
-  | 'plannedHeader'
-  | 'inProgressHeader'
-  | 'completedHeader'
-  | 'declinedHeader'
-> = {
-  [FeatureStatus.Suggested]: 'suggestedHeader',
-  [FeatureStatus.Planned]: 'plannedHeader',
-  [FeatureStatus.InProgress]: 'inProgressHeader',
-  [FeatureStatus.Completed]: 'completedHeader',
-  [FeatureStatus.Declined]: 'declinedHeader',
+const useStatusColors = (): Record<FeatureStatus, string> => {
+  const theme = useTheme();
+  return {
+    [FeatureStatus.Suggested]: theme.palette.warning.main,
+    [FeatureStatus.Planned]: theme.palette.info.main,
+    [FeatureStatus.InProgress]: theme.palette.secondary.main,
+    [FeatureStatus.Completed]: theme.palette.success.main,
+    [FeatureStatus.Declined]: theme.palette.error.main,
+  };
 };
 
 type FeatureWithVote = Feature & { hasVoted: boolean };
 
 export const RoadmapBoard = () => {
   const classes = useStyles();
+  const statusColors = useStatusColors();
   const [includeBeyondRetention, setIncludeBeyondRetention] = useState(false);
   const {
     data: boardConfig,
@@ -272,7 +239,35 @@ export const RoadmapBoard = () => {
   };
 
   if (configLoading || featuresLoading) {
-    return <Progress />;
+    return (
+      <Page themeId="tool">
+        <Header title="Public Roadmap" subtitle="Shape the Future with Us" />
+        <Content className={classes.root}>
+          <div className={classes.boardContainer}>
+            {[0, 1, 2, 3].map(i => (
+              <div className={classes.columnWrapper} key={i}>
+                <Paper className={classes.column} elevation={0}>
+                  <Box className={classes.columnHeader}>
+                    <Skeleton variant="circle" width={8} height={8} />
+                    <Skeleton variant="text" width={90} />
+                  </Box>
+                  <Box className={classes.columnContent}>
+                    {[0, 1, 2].map(j => (
+                      <Skeleton
+                        key={j}
+                        variant="rect"
+                        height={72}
+                        style={{ borderRadius: 10, marginBottom: 12 }}
+                      />
+                    ))}
+                  </Box>
+                </Paper>
+              </div>
+            ))}
+          </div>
+        </Content>
+      </Page>
+    );
   }
 
   if (configError || error) {
@@ -315,20 +310,21 @@ export const RoadmapBoard = () => {
 
         <div className={classes.boardContainer}>
           {visibleColumns.map((col: RoadmapBoardColumnResolved) => {
-            const headerKey = STATUS_HEADER_CLASS[col.status];
             const list = featuresByStatus[col.status] ?? [];
             return (
               <div className={classes.columnWrapper} key={col.status}>
-                <Paper className={classes.column}>
-                  <Box
-                    className={`${classes.columnHeader} ${
-                      classes[headerKey as keyof typeof classes]
-                    }`}
-                  >
-                    <span className={classes.iconMargin}>
-                      {STATUS_ICONS[col.status]}
-                    </span>
-                    <Typography variant="subtitle2">{col.title}</Typography>
+                <Paper className={classes.column} elevation={0}>
+                  <Box className={classes.columnHeader}>
+                    <span
+                      className={classes.statusDot}
+                      style={{ backgroundColor: statusColors[col.status] }}
+                    />
+                    <Typography
+                      variant="subtitle2"
+                      className={classes.columnTitle}
+                    >
+                      {col.title}
+                    </Typography>
                     <span className={classes.statusCount}>{list.length}</span>
                   </Box>
                   <Box className={classes.columnContent}>
@@ -370,7 +366,11 @@ export const RoadmapBoard = () => {
                     ))}
                     {!list.length && (
                       <div className={classes.emptyState}>
-                        <Typography variant="body2">No features yet</Typography>
+                        <Typography variant="body2">
+                          {col.status === FeatureStatus.Suggested
+                            ? 'No suggestions yet — be the first to suggest a feature!'
+                            : 'Nothing here yet'}
+                        </Typography>
                       </div>
                     )}
                   </Box>

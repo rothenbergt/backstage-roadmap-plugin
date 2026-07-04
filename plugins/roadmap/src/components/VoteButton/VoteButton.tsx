@@ -1,92 +1,70 @@
 import { MouseEvent } from 'react';
-import { Box, Tooltip, alpha } from '@material-ui/core';
+import { ButtonBase, Tooltip, alpha } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import ThumbUpIcon from '@material-ui/icons/ThumbUp';
+import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import { useToggleVote } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
-  voteContainer: {
+  votePill: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    cursor: 'pointer',
-    padding: theme.spacing(0.5, 0),
-    borderRadius: theme.shape.borderRadius,
-    transition: 'all 0.15s ease',
+    justifyContent: 'center',
+    gap: 0,
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    backgroundColor: 'transparent',
+    color: theme.palette.text.secondary,
+    transition: 'border-color 0.15s ease, background-color 0.15s ease',
     '&:hover': {
-      transform: 'translateY(-2px)',
+      borderColor: alpha(theme.palette.primary.main, 0.5),
+      backgroundColor: alpha(theme.palette.primary.main, 0.06),
     },
   },
   voteCount: {
-    fontSize: '0.9rem',
-    fontWeight: 500,
+    fontWeight: 600,
     lineHeight: 1.2,
-    marginBottom: theme.spacing(0.5),
+    fontVariantNumeric: 'tabular-nums',
   },
-  iconWrapper: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    padding: theme.spacing(0.5),
-  },
-  activeVote: {
+  active: {
+    borderColor: alpha(theme.palette.primary.main, 0.6),
+    backgroundColor: alpha(theme.palette.primary.main, 0.1),
     color: theme.palette.primary.main,
-    '& $iconWrapper': {
-      backgroundColor: alpha(theme.palette.primary.main, 0.12),
-      '& .MuiSvgIcon-root': {
-        color: theme.palette.primary.main,
-      },
-    },
-    '&:hover $iconWrapper': {
-      backgroundColor: alpha(theme.palette.primary.main, 0.2),
-    },
-  },
-  inactiveVote: {
-    color: theme.palette.text.secondary,
-    '& $iconWrapper': {
-      backgroundColor: theme.palette.action.hover,
-      '& .MuiSvgIcon-root': {
-        color: theme.palette.action.active,
-      },
-    },
-    '&:hover $iconWrapper': {
-      backgroundColor: theme.palette.action.selected,
+    '&:hover': {
+      backgroundColor: alpha(theme.palette.primary.main, 0.16),
     },
   },
   small: {
-    '& $iconWrapper': {
-      width: 28,
-      height: 28,
-      '& .MuiSvgIcon-root': {
-        fontSize: '1rem',
-      },
-    },
+    minWidth: 40,
+    padding: theme.spacing(0.5, 1),
     '& $voteCount': {
       fontSize: '0.75rem',
     },
+    '& .MuiSvgIcon-root': {
+      fontSize: '1.1rem',
+      marginBottom: -2,
+    },
   },
   medium: {
-    '& $iconWrapper': {
-      width: 32,
-      height: 32,
-      '& .MuiSvgIcon-root': {
-        fontSize: '1.25rem',
-      },
+    minWidth: 44,
+    padding: theme.spacing(0.75, 1.25),
+    '& $voteCount': {
+      fontSize: '0.85rem',
+    },
+    '& .MuiSvgIcon-root': {
+      fontSize: '1.25rem',
+      marginBottom: -2,
     },
   },
   large: {
-    '& $iconWrapper': {
-      width: 36,
-      height: 36,
-      '& .MuiSvgIcon-root': {
-        fontSize: '1.5rem',
-      },
-    },
+    minWidth: 52,
+    padding: theme.spacing(1, 1.5),
     '& $voteCount': {
       fontSize: '1rem',
+    },
+    '& .MuiSvgIcon-root': {
+      fontSize: '1.5rem',
+      marginBottom: -2,
     },
   },
 }));
@@ -117,21 +95,18 @@ export const VoteButton = ({
 
   return (
     <Tooltip title={hasVoted ? 'Remove your vote' : 'Upvote this feature'}>
-      <Box
-        className={`
-          ${classes.voteContainer} 
-          ${classes[size]} 
-          ${hasVoted ? classes.activeVote : classes.inactiveVote}
-          ${className || ''}
-        `}
+      <ButtonBase
+        className={`${classes.votePill} ${classes[size]} ${
+          hasVoted ? classes.active : ''
+        } ${className || ''}`}
         onClick={handleClick}
         aria-label={hasVoted ? 'Remove vote' : 'Add vote'}
+        aria-pressed={hasVoted}
+        disableRipple
       >
-        <div className={classes.voteCount}>{voteCount}</div>
-        <div className={classes.iconWrapper}>
-          <ThumbUpIcon />
-        </div>
-      </Box>
+        <KeyboardArrowUpIcon />
+        <span className={classes.voteCount}>{voteCount}</span>
+      </ButtonBase>
     </Tooltip>
   );
 };

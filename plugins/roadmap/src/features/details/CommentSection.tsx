@@ -45,11 +45,8 @@ const useStyles = makeStyles(theme => ({
   },
   commentItem: {
     padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    transition: 'box-shadow 0.2s ease',
-    '&:hover': {
-      boxShadow: theme.shadows[1],
-    },
+    marginBottom: theme.spacing(1.5),
+    borderRadius: 10,
   },
   commentHeader: {
     display: 'flex',
@@ -64,6 +61,9 @@ const useStyles = makeStyles(theme => ({
   },
   authorAvatar: {
     backgroundColor: theme.palette.primary.main,
+    width: 32,
+    height: 32,
+    fontSize: '0.8rem',
   },
   commentTimestamp: {
     color: theme.palette.text.secondary,
@@ -74,7 +74,8 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     padding: theme.spacing(3),
     color: theme.palette.text.secondary,
-    backgroundColor: theme.palette.background.default,
+    borderRadius: 10,
+    borderStyle: 'dashed',
   },
   sendButton: {
     marginLeft: theme.spacing(1),
