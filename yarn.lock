@@ -7052,7 +7052,7 @@ __metadata:
     "@backstage/plugin-search-backend": "npm:^2.1.3"
     "@backstage/plugin-signals-backend": "npm:^0.3.16"
     "@rothenbergt/backstage-plugin-roadmap-common": "npm:^0.4.1"
-    "@rothenbergt/backstage-plugin-search-backend-module-roadmap": "npm:^0.1.0"
+    "@rothenbergt/backstage-plugin-search-backend-module-roadmap": "npm:^0.2.0"
     "@types/express": "npm:*"
     "@types/supertest": "npm:^2.0.12"
     better-sqlite3: "npm:^12.0.0"
@@ -7112,7 +7112,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rothenbergt/backstage-plugin-search-backend-module-roadmap@npm:^0.1.0, @rothenbergt/backstage-plugin-search-backend-module-roadmap@workspace:plugins/search-backend-module-roadmap":
+"@rothenbergt/backstage-plugin-search-backend-module-roadmap@npm:^0.2.0, @rothenbergt/backstage-plugin-search-backend-module-roadmap@workspace:plugins/search-backend-module-roadmap":
   version: 0.0.0-use.local
   resolution: "@rothenbergt/backstage-plugin-search-backend-module-roadmap@workspace:plugins/search-backend-module-roadmap"
   dependencies:
