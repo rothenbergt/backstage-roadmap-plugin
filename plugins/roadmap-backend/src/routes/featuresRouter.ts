@@ -4,6 +4,8 @@ import { RouterOptions } from './router';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { FeatureService } from '../services/FeatureService';
 import { PermissionService } from '../services/PermissionService';
+import { RoadmapNotificationService } from '../services/RoadmapNotificationService';
+import { getAdminUsers } from '../config';
 
 import { NotAllowedError, InputError } from '@backstage/errors';
 /**
@@ -21,6 +23,13 @@ export function featuresRouter(options: RouterOptions): express.Router {
     datasource,
   );
   const permissionService = new PermissionService(options);
+  const roadmapNotifications = options.notifications
+    ? new RoadmapNotificationService(
+        options.notifications,
+        logger,
+        getAdminUsers(options.config),
+      )
+    : undefined;
 
   router.get('/board-config', async (_req, res, next) => {
     try {
@@ -53,13 +62,15 @@ export function featuresRouter(options: RouterOptions): express.Router {
         { title, description },
         username,
       );
+      roadmapNotifications?.notifyFeatureCreated(feature, username);
       res.status(201).json(feature);
     } catch (error) {
       next(error);
     }
   });
 
-  // Get all features
+  // Get all features. The search collator module reads this endpoint with a
+  // service token, so it must stay accessible to service principals.
   router.get('/', async (req, res, next) => {
     try {
       const raw = req.query.includeBeyondRetention;
@@ -132,10 +143,18 @@ export function featuresRouter(options: RouterOptions): express.Router {
         throw new NotAllowedError('User is not a Roadmap admin');
       }
 
+      const before = await featureService.getFeatureById(id);
       const updatedFeature = await featureService.updateFeatureStatus(
         id,
         status,
       );
+      if (before.status !== updatedFeature.status) {
+        roadmapNotifications?.notifyStatusChanged(
+          updatedFeature,
+          before.status,
+          username,
+        );
+      }
       res.status(200).json(updatedFeature);
     } catch (error) {
       next(error);

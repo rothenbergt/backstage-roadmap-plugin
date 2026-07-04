@@ -14,6 +14,7 @@ import {
   PermissionsService,
 } from '@backstage/backend-plugin-api';
 import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
+import { NotificationService } from '@backstage/plugin-notifications-node';
 import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { commentsRouter } from './commentsRouter';
 import { featuresRouter } from './featuresRouter';
@@ -34,6 +35,8 @@ export interface RouterOptions {
   datasource: DatasourceType;
   boardColumns: RoadmapBoardColumnResolved[];
   boardConfigResponse: RoadmapBoardConfigResponse;
+  /** Optional so the router also works in setups without the notifications service. */
+  notifications?: NotificationService;
 }
 
 /**
