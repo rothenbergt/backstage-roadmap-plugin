@@ -35,6 +35,8 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 - 🔔 Backstage notifications for status changes, comments, and new suggestions
 - 🔍 (Optional) Backstage search integration via a collator module
 - 🔗 Deep links: `/roadmap?feature=<id>` opens a feature directly
+- ⚡ Live board updates via Backstage signals (votes and status changes appear without a refresh)
+- 🔌 Events for integrators: every change is published to the Backstage events bus
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
 - 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
@@ -142,6 +144,24 @@ backend.add(
 ```
 
 See the [module README](plugins/search-backend-module-roadmap/README.md) for schedule configuration.
+
+### Live updates (signals)
+
+If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes: new suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals; the board just falls back to regular refetching.
+
+### Events (for integrators)
+
+The backend publishes every change to the Backstage [events service](https://backstage.io/docs/plugins/events/) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
+
+```typescript
+events.subscribe({
+  id: 'my-roadmap-listener',
+  topics: ['roadmap'],
+  onEvent: async params => {
+    // params.eventPayload has the feature/comment and the acting user
+  },
+});
+```
 
 ### Board columns (labels and visibility)
 

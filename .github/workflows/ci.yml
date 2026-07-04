@@ -43,6 +43,9 @@ jobs:
       - name: Type check
         run: yarn tsc
 
+      - name: Verify API reports
+        run: yarn build:api-reports && git diff --exit-code -- '**/report.api.md'
+
       - name: Build
         run: yarn build:all
 

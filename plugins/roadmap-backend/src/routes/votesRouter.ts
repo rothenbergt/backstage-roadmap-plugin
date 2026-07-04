@@ -3,6 +3,7 @@ import Router from 'express-promise-router';
 import { RouterOptions } from './router';
 import { VoteService } from '../services/VoteService';
 import { PermissionService } from '../services/PermissionService';
+import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { InputError } from '@backstage/errors';
 
 /**
@@ -15,6 +16,11 @@ export function votesRouter(options: RouterOptions): express.Router {
   // Initialize services
   const voteService = new VoteService(db, logger);
   const permissionService = new PermissionService(options);
+  const eventPublisher = new RoadmapEventPublisher(
+    logger,
+    options.events,
+    options.signals,
+  );
 
   // Get vote counts for multiple features
   router.get('/counts', async (req, res, next) => {
@@ -81,6 +87,12 @@ export function votesRouter(options: RouterOptions): express.Router {
 
       const username = await permissionService.getUsername(req);
       const result = await voteService.toggleVote(featureId, username);
+      eventPublisher.voteToggled(
+        featureId,
+        result.voteAdded,
+        result.voteCount,
+        username,
+      );
 
       res.status(200).json(result);
     } catch (error) {

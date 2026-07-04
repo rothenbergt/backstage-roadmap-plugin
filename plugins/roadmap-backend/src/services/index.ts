@@ -7,3 +7,4 @@ export * from './CommentService';
 export * from './VoteService';
 export * from './PermissionService';
 export * from './RoadmapNotificationService';
+export * from './RoadmapEventPublisher';

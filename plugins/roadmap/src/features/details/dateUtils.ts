@@ -5,8 +5,9 @@
 /**
  * Parses timestamps returned by the roadmap API.
  *
- * - **PostgreSQL (`pg`)** and GitLab serialize timestamps as ISO 8601 (e.g. `2024-01-15T12:00:00.000Z`).
- * - **SQLite / some drivers** may return SQL-style UTC strings without a timezone: `YYYY-MM-DD HH:MM:SS`.
+ * The backend guarantees ISO 8601 UTC since v2 (it normalizes at the database
+ * boundary). The SQL-style fallback (`YYYY-MM-DD HH:MM:SS`, treated as UTC)
+ * is kept as a safety net for older backends.
  */
 function parseRoadmapDate(dateString: string): Date {
   const trimmed = dateString.trim();

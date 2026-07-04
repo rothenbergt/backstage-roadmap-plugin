@@ -67,8 +67,10 @@ function replaceStatusLabels(
   return cleaned;
 }
 
-function formatIsoDateForStorage(isoDate: string): string {
-  return isoDate.replace('T', ' ').replace(/\.\d+Z$/, '');
+/** GitLab already returns ISO 8601; normalize the representation to UTC. */
+function toIsoUtc(isoDate: string): string {
+  const parsed = new Date(isoDate);
+  return Number.isNaN(parsed.getTime()) ? isoDate : parsed.toISOString();
 }
 
 function mapGitLabIssueToFeature(
@@ -82,8 +84,8 @@ function mapGitLabIssueToFeature(
     status: extractStatusFromLabels(issue.labels ?? []),
     votes: voteCount ?? issue.upvotes ?? 0,
     author: issue.author?.username ?? '',
-    created_at: formatIsoDateForStorage(issue.created_at),
-    updated_at: formatIsoDateForStorage(issue.updated_at),
+    createdAt: toIsoUtc(issue.created_at),
+    updatedAt: toIsoUtc(issue.updated_at),
   };
 }
 
@@ -95,8 +97,8 @@ function mapGitLabNoteToComment(note: GitLabNote, featureId: string): Comment {
     author: authorMatch ? authorMatch[1] : note.author?.username ?? '',
     featureId,
     text: authorMatch ? body.replace(AUTHOR_TAG_RE, '') : body,
-    created_at: formatIsoDateForStorage(note.created_at),
-    updated_at: formatIsoDateForStorage(note.updated_at),
+    createdAt: toIsoUtc(note.created_at),
+    updatedAt: toIsoUtc(note.updated_at),
   };
 }
 

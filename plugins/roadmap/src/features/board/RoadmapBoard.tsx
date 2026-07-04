@@ -5,6 +5,7 @@ import {
   useBoardConfig,
   useAdminStatus,
   useReorderFeatures,
+  useRoadmapLiveUpdates,
 } from '../../hooks';
 import { FeatureCard } from '../../components';
 import { FeatureDetailsDrawer } from '../details/FeatureDetailsDrawer';
@@ -178,6 +179,8 @@ export const RoadmapBoard = () => {
     error,
   } = useFeatures(includeBeyondRetention);
   const { data: isAdmin } = useAdminStatus();
+  // Live board: refetch when the backend broadcasts changes over signals.
+  useRoadmapLiveUpdates();
   const { mutate: reorder } = useReorderFeatures();
   // The `feature` search param is the source of truth for the details drawer,
   // so notification and search-result links can deep-link straight to a feature.

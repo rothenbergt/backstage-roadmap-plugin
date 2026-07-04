@@ -5,6 +5,7 @@ import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { FeatureService } from '../services/FeatureService';
 import { PermissionService } from '../services/PermissionService';
 import { RoadmapNotificationService } from '../services/RoadmapNotificationService';
+import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { getAdminUsers } from '../config';
 
 import { NotAllowedError, InputError } from '@backstage/errors';
@@ -30,6 +31,11 @@ export function featuresRouter(options: RouterOptions): express.Router {
         getAdminUsers(options.config),
       )
     : undefined;
+  const eventPublisher = new RoadmapEventPublisher(
+    logger,
+    options.events,
+    options.signals,
+  );
 
   router.get('/board-config', async (_req, res, next) => {
     try {
@@ -63,6 +69,7 @@ export function featuresRouter(options: RouterOptions): express.Router {
         username,
       );
       roadmapNotifications?.notifyFeatureCreated(feature, username);
+      eventPublisher.featureCreated(feature, username);
       res.status(201).json(feature);
     } catch (error) {
       next(error);
@@ -116,6 +123,7 @@ export function featuresRouter(options: RouterOptions): express.Router {
         throw new InputError('orderedIds must be an array of string ids');
       }
       await featureService.reorderFeatures(status as FeatureStatus, orderedIds);
+      eventPublisher.boardReordered(status as FeatureStatus, username);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -154,6 +162,7 @@ export function featuresRouter(options: RouterOptions): express.Router {
           before.status,
           username,
         );
+        eventPublisher.statusChanged(updatedFeature, before.status, username);
       }
       res.status(200).json(updatedFeature);
     } catch (error) {
@@ -182,20 +191,14 @@ export function featuresRouter(options: RouterOptions): express.Router {
       const username = await permissionService.getUsername(req);
       const isAdmin = await permissionService.isRoadmapAdmin(req, username);
 
-      if (isAdmin) {
-        const updated = await featureService.updateFeatureDetails(id, {
-          title,
-          description,
-        });
-        res.status(200).json(updated);
-        return;
+      if (!isAdmin) {
+        await featureService.assertAuthorSuggestedOrNotFound(id, username);
       }
-
-      await featureService.assertAuthorSuggestedOrNotFound(id, username);
       const updated = await featureService.updateFeatureDetails(id, {
         title,
         description,
       });
+      eventPublisher.featureUpdated(updated, username);
       res.status(200).json(updated);
     } catch (error) {
       next(error);
@@ -213,14 +216,11 @@ export function featuresRouter(options: RouterOptions): express.Router {
       const username = await permissionService.getUsername(req);
       const isAdmin = await permissionService.isRoadmapAdmin(req, username);
 
-      if (isAdmin) {
-        await featureService.deleteFeature(id);
-        res.status(204).send();
-        return;
+      if (!isAdmin) {
+        await featureService.assertAuthorSuggestedOrNotFound(id, username);
       }
-
-      await featureService.assertAuthorSuggestedOrNotFound(id, username);
       await featureService.deleteFeature(id);
+      eventPublisher.featureDeleted(id, username);
       res.status(204).send();
     } catch (error) {
       next(error);

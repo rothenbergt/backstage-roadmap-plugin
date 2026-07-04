@@ -276,7 +276,7 @@ export const CommentSection = ({
                         variant="caption"
                         className={classes.commentTimestamp}
                       >
-                        {formatDate(comment.created_at)}
+                        {formatDate(comment.createdAt)}
                       </Typography>
                     </Typography>
                   </Box>

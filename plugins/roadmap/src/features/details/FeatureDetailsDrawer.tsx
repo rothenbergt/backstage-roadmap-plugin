@@ -472,11 +472,11 @@ export const FeatureDetailsDrawer = ({
               />
             </span>
             <span className={classes.metaSeparator}>·</span>
-            <span>Created {formatDate(feature.created_at)}</span>
-            {feature.created_at !== feature.updated_at && (
+            <span>Created {formatDate(feature.createdAt)}</span>
+            {feature.createdAt !== feature.updatedAt && (
               <>
                 <span className={classes.metaSeparator}>·</span>
-                <span>Updated {formatDate(feature.updated_at)}</span>
+                <span>Updated {formatDate(feature.updatedAt)}</span>
               </>
             )}
           </Typography>

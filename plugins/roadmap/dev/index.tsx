@@ -22,6 +22,7 @@ import {
   UserNotificationSettingsCard,
 } from '@backstage/plugin-notifications';
 import { searchPlugin } from '@backstage/plugin-search';
+import { signalsPlugin } from '@backstage/plugin-signals';
 import {
   DefaultResultListItem,
   SearchBar,
@@ -129,6 +130,8 @@ const DevNotificationSettingsPage = () => (
 createDevApp()
   .registerPlugin(devPlugin)
   .registerPlugin(searchPlugin)
+  // Provides the SignalApi so the board's live updates work in the dev app
+  .registerPlugin(signalsPlugin)
   .addPage({
     element: <DevRoadmapPage />,
     title: 'Root Page',

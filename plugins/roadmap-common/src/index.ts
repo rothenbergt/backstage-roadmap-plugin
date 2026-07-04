@@ -1,4 +1,3 @@
-/***/
 /**
  * Common functionalities for the roadmap plugin.
  *
@@ -7,3 +6,4 @@
 
 export * from './types';
 export * from './permissions';
+export * from './events';
