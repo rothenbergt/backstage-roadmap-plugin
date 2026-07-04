@@ -50,4 +50,10 @@ jobs:
         run: yarn build:all
 
       - name: Test
-        run: yarn test:all
+        # The database suite runs in its own step: loading the better-sqlite3
+        # native module twice in one jest worker segfaults on Linux, so it
+        # cannot share a process with the other sqlite-backed suite.
+        run: yarn test:all --testPathIgnorePatterns=RoadmapDatabaseClient.test.ts
+
+      - name: Test database suite
+        run: yarn workspace @rothenbergt/backstage-plugin-roadmap-backend test --watchAll=false --runInBand RoadmapDatabaseClient
