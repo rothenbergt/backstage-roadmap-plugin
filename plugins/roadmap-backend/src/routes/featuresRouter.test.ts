@@ -404,7 +404,10 @@ describe('featuresRouter', () => {
 
     function createEventMocks() {
       return {
-        events: { publish: jest.fn().mockResolvedValue(undefined) },
+        events: {
+          publish: jest.fn().mockResolvedValue(undefined),
+          subscribe: jest.fn(),
+        },
         signals: { publish: jest.fn().mockResolvedValue(undefined) },
       };
     }
@@ -479,6 +482,7 @@ describe('featuresRouter', () => {
     it('does not fail the request when event publishing rejects', async () => {
       const events = {
         publish: jest.fn().mockRejectedValue(new Error('down')),
+        subscribe: jest.fn(),
       };
       const signals = {
         publish: jest.fn().mockRejectedValue(new Error('down')),
