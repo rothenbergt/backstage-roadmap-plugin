@@ -18,7 +18,10 @@ backend:
 
 auth:
   providers:
-    guest: {}
+    guest:
+      # Match the seeded catalog user (examples/org.yaml) so author and
+      # commenter refs resolve to a real entity in the dev catalog.
+      userEntityRef: user:default/guest
 
 permission:
   enabled: true
@@ -34,7 +37,7 @@ search:
 
 roadmap:
   adminUsers:
-    - 'user:development/guest'
+    - 'user:default/guest'
     # Second admin so new-suggestion notifications fire locally (the acting
     # guest user is excluded from their own notifications).
     - 'user:default/roadmap-admin'
