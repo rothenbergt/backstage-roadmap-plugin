@@ -139,6 +139,7 @@ export const CreateFeatureModal = ({
       <DialogContent className={classes.dialogContent}>
         <form onSubmit={handleSubmit} className={classes.form}>
           <TextField
+            id="create-feature-title"
             label="Title"
             variant="outlined"
             value={title}
@@ -153,6 +154,7 @@ export const CreateFeatureModal = ({
           />
 
           <TextField
+            id="create-feature-description"
             label="Description"
             variant="outlined"
             value={description}

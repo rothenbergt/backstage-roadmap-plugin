@@ -6,10 +6,10 @@ import { ConfigReader } from '@backstage/config';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 import { getBoardConfigResponse, getMergedBoardColumns } from '../boardConfig';
-import { featuresRouter } from './featuresRouter';
-import { commentsRouter } from './commentsRouter';
-import { votesRouter } from './votesRouter';
-import { RouterOptions } from './router';
+import { featuresRouter } from '../routes/featuresRouter';
+import { commentsRouter } from '../routes/commentsRouter';
+import { votesRouter } from '../routes/votesRouter';
+import { RouterOptions } from '../routes/router';
 
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
