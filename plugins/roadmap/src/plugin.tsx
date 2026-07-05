@@ -8,6 +8,7 @@ import {
   fetchApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
+import { SearchResultListItemBlueprint } from '@backstage/plugin-search-react/alpha';
 import { rootRouteRef } from './routes';
 import { roadmapApiRef, RoadmapApiClient } from './api';
 
@@ -34,6 +35,17 @@ const roadmapPage = PageBlueprint.make({
   },
 });
 
+const roadmapSearchResultListItem = SearchResultListItemBlueprint.make({
+  name: 'roadmap',
+  params: {
+    predicate: result => result.type === 'roadmap',
+    component: () =>
+      import('./components/RoadmapSearchResultListItem').then(
+        m => m.RoadmapSearchResultListItem,
+      ),
+  },
+});
+
 /**
  * The Roadmap plugin provides a public roadmap of features with voting and commenting.
  *
@@ -41,7 +53,7 @@ const roadmapPage = PageBlueprint.make({
  */
 export const roadmapPlugin = createFrontendPlugin({
   pluginId: 'roadmap',
-  extensions: [roadmapPage, roadmapApi],
+  extensions: [roadmapPage, roadmapApi, roadmapSearchResultListItem],
   routes: {
     root: rootRouteRef,
   },

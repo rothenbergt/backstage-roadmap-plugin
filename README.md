@@ -142,6 +142,30 @@ backend.add(
 
 See the [module README](plugins/search-backend-module-roadmap/README.md) for schedule configuration.
 
+Roadmap results render with their status, vote count, and author. On the new frontend system this works out of the box. On the legacy frontend system, render the exported component for `roadmap` results in your search page (`packages/app/src/components/search/SearchPage.tsx`):
+
+```tsx
+import { RoadmapSearchResultListItem } from '@rothenbergt/backstage-plugin-roadmap';
+
+<SearchResult>
+  {({ results }) => (
+    <List>
+      {results.map(({ type, document, highlight }) =>
+        type === 'roadmap' ? (
+          <RoadmapSearchResultListItem
+            key={document.location}
+            result={document}
+            highlight={highlight}
+          />
+        ) : (
+          <DefaultResultListItem key={document.location} result={document} />
+        ),
+      )}
+    </List>
+  )}
+</SearchResult>;
+```
+
 ### Live updates (signals)
 
 If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes: new suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals; the board just falls back to regular refetching.
