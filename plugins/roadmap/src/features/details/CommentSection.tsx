@@ -22,7 +22,7 @@ import { MarkdownContent, Progress } from '@backstage/core-components';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { EntityDisplayName } from '@backstage/plugin-catalog-react';
+import { EntityRefLink } from '@backstage/plugin-catalog-react';
 import SendIcon from '@material-ui/icons/Send';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 
@@ -265,7 +265,7 @@ export const CommentSection = ({
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle2">
-                      <EntityDisplayName
+                      <EntityRefLink
                         entityRef={parseEntityRef(comment.author, {
                           defaultKind: 'user',
                           defaultNamespace: 'default',

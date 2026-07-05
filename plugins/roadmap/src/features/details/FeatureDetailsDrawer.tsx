@@ -45,7 +45,7 @@ import {
 } from '@backstage/core-components';
 import { useApi, identityApiRef } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { EntityDisplayName } from '@backstage/plugin-catalog-react';
+import { EntityRefLink } from '@backstage/plugin-catalog-react';
 
 const useStyles = makeStyles(theme => ({
   drawer: {
@@ -460,7 +460,7 @@ export const FeatureDetailsDrawer = ({
           <Typography component="div" className={classes.metaLine}>
             <span>
               Suggested by{' '}
-              <EntityDisplayName
+              <EntityRefLink
                 entityRef={parseEntityRef(feature.author, {
                   defaultKind: 'user',
                   defaultNamespace: 'default',
