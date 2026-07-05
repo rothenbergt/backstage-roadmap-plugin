@@ -1,5 +1,15 @@
 # @rothenbergt/backstage-plugin-roadmap
 
+## 2.1.0
+
+### Minor Changes
+
+- f4a5ed5: Roadmap search results now render with a status chip, vote count, and author instead of the bare default list item. Apps on the new frontend system pick this up automatically; legacy apps can add the exported RoadmapSearchResultListItem to their search page.
+
+### Patch Changes
+
+- dcdc69b: Form fields (suggest dialog, comment box, edit drawer) now have ids so their labels are properly associated for screen readers and testing tools.
+
 ## 2.0.0
 
 ### Major Changes
