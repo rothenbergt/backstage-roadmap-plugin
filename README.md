@@ -118,21 +118,13 @@ Details worth knowing:
 
 #### Why new-suggestion recipients come from config, not the permission framework
 
-You might expect "notify the admins" to ask the permission framework who the admins are. It can't, and this is a limitation of core Backstage itself, not of this plugin.
-
-The permission framework answers exactly one kind of question: "is the user making this request allowed to do this thing?" That works great for gating admin actions, and this plugin uses it that way: when the framework is enabled, every status change, edit, and delete is checked against `roadmap.admin` before it happens.
-
-What the framework cannot answer is "give me the list of everyone who is an admin." That list does not exist anywhere. Who counts as an admin is decided by your permission policy, which is code you write (or an RBAC plugin provides), and it can decide however it wants: group membership, resource ownership, an external system, anything. The core interface (`PermissionEvaluator` in `@backstage/plugin-permission-common`) only exposes per-request decisions, so there is nothing to enumerate. Upstream plugins hit the same wall, which is why announcements broadcasts to everyone rather than targeting a subset.
-
-So notifications need their own answer for "who cares about new suggestions", and that is `roadmap.adminUsers`. The good news is it accepts **group refs**, and the notifications backend expands group membership from the catalog:
+The permission framework decides what admins may do, but it cannot enumerate who the admins are (it only answers per-request "is this user allowed?" questions), so notification recipients come from `roadmap.adminUsers`. The list accepts **group refs**, and the notifications backend expands membership from the catalog. If you use an RBAC plugin, point it at the same catalog group your roles are bound to and membership stays managed in one place:
 
 ```yaml
 roadmap:
   adminUsers:
     - group:default/devex-team
 ```
-
-If you use an RBAC plugin, its roles are usually bound to a catalog group already, so point `adminUsers` at that same group and membership stays managed in one place. The permission framework still decides what those admins may do; the config just says who gets the ping.
 
 ### Search
 
@@ -184,7 +176,7 @@ Add a list under `columns`. Each item supports:
 
 **Defaults:** Every status has a column. **In Progress** is included but **`visible: false` by default**, so the board matches the classic four-column layout until you turn it on. Other statuses default to visible.
 
-**Example** — each row uses `status` (required for the merge). The block below shows **every optional field** at least once: `title`, `visible`, `retentionDays`, and both `retentionAnchor` values (`created` / `updated`). Retention only affects the default feature list when using the **database** datasource.
+**Example** showing every optional field (retention only affects the **database** datasource):
 
 ```yaml
 roadmap:
