@@ -1,5 +1,12 @@
 # @rothenbergt/backstage-plugin-search-backend-module-roadmap
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [f4738bd]
+  - @rothenbergt/backstage-plugin-roadmap-common@1.0.0
+
 ## 0.2.0
 
 ### Minor Changes
