@@ -156,13 +156,14 @@ test.describe('search: rich roadmap results', () => {
     const searchBox = page.getByRole('textbox');
     const resultLink = page.getByRole('link', { name: title });
 
-    // The collator indexes every 10 seconds (app-config.yaml), so retype the
-    // query until the feature lands in the index
+    // The collator indexes every 10 seconds (app-config.yaml), and the
+    // search context caches by term, so each retry reloads the page to get
+    // a genuinely fresh query against the latest index.
     await expect(async () => {
-      await searchBox.fill('');
+      await page.goto('/search');
       await searchBox.fill(term);
-      await expect(resultLink).toBeVisible({ timeout: 3_000 });
-    }).toPass({ timeout: 30_000 });
+      await expect(resultLink).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
 
     // The rich list item shows board metadata, not just title and text
     const resultItem = page.getByRole('listitem').filter({ hasText: title });
