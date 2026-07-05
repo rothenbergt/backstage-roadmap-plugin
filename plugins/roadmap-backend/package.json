@@ -49,6 +49,7 @@
     "@backstage/plugin-auth-backend": "^0.29.1",
     "@backstage/plugin-auth-backend-module-guest-provider": "^0.2.20",
     "@backstage/plugin-catalog-backend": "^3.8.0",
+    "@backstage/plugin-catalog-node": "^2.2.2",
     "@backstage/plugin-notifications-backend": "^0.6.6",
     "@backstage/plugin-permission-backend": "^0.7.2",
     "@backstage/plugin-permission-backend-module-allow-all-policy": "^0.2.10",

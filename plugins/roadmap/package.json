@@ -62,6 +62,7 @@
     "@backstage/plugin-search-react": "^1.11.5",
     "@backstage/plugin-signals": "^0.0.32",
     "@backstage/test-utils": "^1.7.19",
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.0.0",

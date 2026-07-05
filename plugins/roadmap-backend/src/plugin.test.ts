@@ -3,22 +3,13 @@ import { roadmapPlugin } from './plugin';
 import { mockServices } from '@backstage/backend-test-utils';
 import request from 'supertest';
 
-/** True when the native better-sqlite3 binary matches this Node (CI / nvm-aligned dev). */
-function canOpenBetterSqliteMemory(): boolean {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const BetterSqlite = require('better-sqlite3');
-    const db = new BetterSqlite(':memory:');
-    db.close();
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Fail loudly (instead of silently skipping) when the native better-sqlite3
+// binary does not match this Node version - a green run must mean these
+// tests actually executed.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const BetterSqlite = require('better-sqlite3');
 
-const describeIntegration = canOpenBetterSqliteMemory()
-  ? describe
-  : describe.skip;
+new BetterSqlite(':memory:').close();
 
 // Mock the gitlab client to avoid real HTTP calls
 jest.mock('./gitlab', () => ({
@@ -39,7 +30,7 @@ jest.mock('./gitlab', () => ({
   },
 }));
 
-describeIntegration('roadmapPlugin datasource config', () => {
+describe('roadmapPlugin datasource config', () => {
   it('starts with database source by default', async () => {
     const { server } = await startTestBackend({
       features: [

@@ -25,7 +25,8 @@
     "postinstall": "husky",
     "changeset": "changeset",
     "release": "yarn build:all && changeset publish",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "test:e2e": "playwright test"
   },
   "workspaces": {
     "packages": [
@@ -37,6 +38,7 @@
     "@backstage/e2e-test-utils": "^0.1.2",
     "@backstage/repo-tools": "^0.17.3",
     "@changesets/cli": "^2.29.7",
+    "@playwright/test": "^1.61.1",
     "@spotify/prettier-config": "^12.0.0",
     "@types/jest": "^29.0.0",
     "@types/react-dom": "^18",

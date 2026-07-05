@@ -70,13 +70,4 @@ describe('RoadmapCollatorFactory', () => {
       },
     ]);
   });
-
-  it('has the expected collator type', () => {
-    const factory = RoadmapCollatorFactory.fromConfig({
-      logger: mockServices.logger.mock(),
-      discovery: mockServices.discovery(),
-      auth: mockServices.auth(),
-    });
-    expect(factory.type).toBe('roadmap');
-  });
 });

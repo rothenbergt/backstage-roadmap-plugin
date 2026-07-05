@@ -333,6 +333,7 @@ export const CommentSection = ({
         className={classes.commentForm}
       >
         <TextField
+          id="add-comment"
           label="Add a comment"
           variant="outlined"
           fullWidth

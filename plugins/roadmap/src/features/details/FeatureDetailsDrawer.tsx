@@ -402,6 +402,7 @@ export const FeatureDetailsDrawer = ({
           {editingDetails ? (
             <>
               <TextField
+                id="edit-feature-title"
                 label="Title"
                 variant="outlined"
                 fullWidth
@@ -413,6 +414,7 @@ export const FeatureDetailsDrawer = ({
                 disabled={isSavingDetails}
               />
               <TextField
+                id="edit-feature-description"
                 label="Description"
                 variant="outlined"
                 fullWidth
