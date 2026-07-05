@@ -26,12 +26,12 @@ auth:
 permission:
   enabled: true
 
-# Fast search collation for local development (production default is 10 min)
+# Fast search collation for local development and e2e (production default is 10 min)
 search:
   collators:
     roadmap:
       schedule:
-        frequency: { minutes: 1 }
+        frequency: { seconds: 10 }
         timeout: { minutes: 5 }
         initialDelay: { seconds: 3 }
 

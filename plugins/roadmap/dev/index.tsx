@@ -7,15 +7,7 @@ import {
   fetchApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
-import {
-  Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-} from '@material-ui/core';
-import MapIcon from '@material-ui/icons/Map';
-import { Link } from '@backstage/core-components';
+import { List } from '@material-ui/core';
 import { Content, Header, Page } from '@backstage/core-components';
 import {
   NotificationsPage,
@@ -38,6 +30,7 @@ import {
 } from '@backstage/plugin-search-react';
 import { rootRouteRef } from '../src/routes';
 import { roadmapApiRef, RoadmapApiClient } from '../src/api';
+import { RoadmapSearchResultListItem } from '../src/components';
 
 // Dev-only legacy plugin wrapper for local development
 const devPlugin = createPlugin({
@@ -79,32 +72,13 @@ const DevSearchPage = () => (
         <SearchResult>
           {({ results }) => (
             <List>
-              {results.map(({ type, document }) =>
+              {results.map(({ type, document, highlight }) =>
                 type === 'roadmap' ? (
-                  <ListItem
+                  <RoadmapSearchResultListItem
                     key={document.location}
-                    button
-                    component={Link}
-                    to={document.location}
-                  >
-                    <ListItemIcon>
-                      <MapIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={document.title}
-                      secondary={document.text}
-                    />
-                    <Chip
-                      label={(document as any).status}
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={`${(document as any).votes} votes`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </ListItem>
+                    result={document}
+                    highlight={highlight}
+                  />
                 ) : (
                   <DefaultResultListItem
                     key={document.location}
