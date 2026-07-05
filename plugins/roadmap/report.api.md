@@ -13,11 +13,18 @@ import { ExtensionBlueprintParams } from '@backstage/frontend-plugin-api';
 import { ExtensionDataRef } from '@backstage/frontend-plugin-api';
 import { ExtensionInput } from '@backstage/frontend-plugin-api';
 import { IconElement } from '@backstage/frontend-plugin-api';
+import { IndexableDocument } from '@backstage/plugin-search-common';
 import { JSX as JSX_2 } from 'react';
+import { JSX as JSX_3 } from 'react/jsx-runtime';
 import { OverridableExtensionDefinition } from '@backstage/frontend-plugin-api';
 import { OverridableFrontendPlugin } from '@backstage/frontend-plugin-api';
+import { ReactNode } from 'react';
+import { ResultHighlight } from '@backstage/plugin-search-common';
 import { RouteRef } from '@backstage/core-plugin-api';
 import { RouteRef as RouteRef_2 } from '@backstage/frontend-plugin-api';
+import { SearchResultItemExtensionComponent } from '@backstage/plugin-search-react/alpha';
+import { SearchResultItemExtensionPredicate } from '@backstage/plugin-search-react/alpha';
+import { SearchResultListItemBlueprintParams } from '@backstage/plugin-search-react/alpha';
 
 // @public
 const roadmapPlugin: OverridableFrontendPlugin<
@@ -119,7 +126,54 @@ const roadmapPlugin: OverridableFrontendPlugin<
         noHeader?: boolean | undefined;
       };
     }>;
+    'search-result-list-item:roadmap/roadmap': OverridableExtensionDefinition<{
+      kind: 'search-result-list-item';
+      name: 'roadmap';
+      config: {
+        noTrack: boolean;
+      };
+      configInput: {
+        noTrack?: boolean | undefined;
+      };
+      output: ExtensionDataRef<
+        {
+          predicate?: SearchResultItemExtensionPredicate | undefined;
+          component: SearchResultItemExtensionComponent;
+          icon?: JSX_2.Element | undefined;
+        },
+        'search.search-result-list-item.item',
+        {}
+      >;
+      inputs: {};
+      params: SearchResultListItemBlueprintParams;
+    }>;
   }
 >;
 export default roadmapPlugin;
+
+// @public
+export interface RoadmapSearchDocument extends IndexableDocument {
+  // (undocumented)
+  author?: string;
+  // (undocumented)
+  status?: string;
+  // (undocumented)
+  votes?: number;
+}
+
+// @public
+export const RoadmapSearchResultListItem: (
+  props: RoadmapSearchResultListItemProps,
+) => JSX_3.Element | null;
+
+// @public
+export interface RoadmapSearchResultListItemProps {
+  // (undocumented)
+  highlight?: ResultHighlight;
+  icon?: ReactNode;
+  // (undocumented)
+  rank?: number;
+  // (undocumented)
+  result?: RoadmapSearchDocument;
+}
 ```

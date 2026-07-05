@@ -60,6 +60,8 @@ const useStyles = makeStyles(theme => ({
 /**
  * A roadmap feature as indexed for search: the common document fields plus
  * the extras the collator adds.
+ *
+ * @public
  */
 export interface RoadmapSearchDocument extends IndexableDocument {
   status?: string;
