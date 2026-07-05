@@ -20,8 +20,8 @@ const baseColumns: RoadmapBoardColumnResolved[] = [
 function feature(
   id: string,
   status: FeatureStatus,
-  created_at: string,
-  updated_at: string,
+  createdAt: string,
+  updatedAt: string,
 ): import('@rothenbergt/backstage-plugin-roadmap-common').Feature {
   return {
     id,
@@ -30,8 +30,8 @@ function feature(
     status,
     author: 'user:default/x',
     votes: 0,
-    created_at,
-    updated_at,
+    createdAt,
+    updatedAt,
   };
 }
 

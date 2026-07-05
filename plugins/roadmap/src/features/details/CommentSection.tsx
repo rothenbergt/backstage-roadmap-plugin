@@ -20,8 +20,9 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import { MarkdownContent, Progress } from '@backstage/core-components';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { useApi, alertApiRef } from '@backstage/core-plugin-api';
-import { EntityDisplayName } from '@backstage/plugin-catalog-react';
+import { useApi } from '@backstage/core-plugin-api';
+import { toastApiRef } from '@backstage/frontend-plugin-api';
+import { EntityRefLink } from '@backstage/plugin-catalog-react';
 import SendIcon from '@material-ui/icons/Send';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 
@@ -119,7 +120,7 @@ export const CommentSection = ({
   canDeleteComments = false,
 }: CommentSectionProps) => {
   const classes = useStyles();
-  const alertApi = useApi(alertApiRef);
+  const toastApi = useApi(toastApiRef);
   const { data: comments, isLoading, error } = useComments(featureId);
   const {
     mutate: addComment,
@@ -142,44 +143,44 @@ export const CommentSection = ({
   // Show alert when error changes
   useEffect(() => {
     if (error) {
-      alertApi.post({
-        message: `Failed to load comments: ${
+      toastApi.post({
+        title: `Failed to load comments: ${
           error instanceof Error ? error.message : String(error)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [error, alertApi]);
+  }, [error, toastApi]);
 
   // Show alert when submit error changes
   useEffect(() => {
     if (submitError) {
-      alertApi.post({
-        message: `Failed to add comment: ${
+      toastApi.post({
+        title: `Failed to add comment: ${
           submitError instanceof Error
             ? submitError.message
             : String(submitError)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [submitError, alertApi]);
+  }, [submitError, toastApi]);
 
   useEffect(() => {
     if (deleteError) {
-      alertApi.post({
-        message: `Failed to delete comment: ${
+      toastApi.post({
+        title: `Failed to delete comment: ${
           deleteError instanceof Error
             ? deleteError.message
             : String(deleteError)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [deleteError, alertApi]);
+  }, [deleteError, toastApi]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newText = event.target.value;
@@ -218,10 +219,10 @@ export const CommentSection = ({
 
     addComment(commentText, {
       onSuccess: () => {
-        alertApi.post({
-          message: 'Comment added successfully!',
-          severity: 'success',
-          display: 'transient',
+        toastApi.post({
+          title: 'Comment added successfully!',
+          status: 'success',
+          timeout: 5000,
         });
         setCommentText('');
       },
@@ -264,7 +265,7 @@ export const CommentSection = ({
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle2">
-                      <EntityDisplayName
+                      <EntityRefLink
                         entityRef={parseEntityRef(comment.author, {
                           defaultKind: 'user',
                           defaultNamespace: 'default',
@@ -276,7 +277,7 @@ export const CommentSection = ({
                         variant="caption"
                         className={classes.commentTimestamp}
                       >
-                        {formatDate(comment.created_at)}
+                        {formatDate(comment.createdAt)}
                       </Typography>
                     </Typography>
                   </Box>
@@ -393,10 +394,10 @@ export const CommentSection = ({
               deleteComment(deleteDialogCommentId, {
                 onSuccess: () => {
                   setDeleteDialogCommentId(null);
-                  alertApi.post({
-                    message: 'Comment deleted',
-                    severity: 'success',
-                    display: 'transient',
+                  toastApi.post({
+                    title: 'Comment deleted',
+                    status: 'success',
+                    timeout: 5000,
                   });
                 },
               });

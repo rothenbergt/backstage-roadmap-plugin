@@ -11,7 +11,8 @@ import {
   Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { useApi, alertApiRef } from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
+import { toastApiRef } from '@backstage/frontend-plugin-api';
 
 const useStyles = makeStyles(theme => ({
   form: {
@@ -38,7 +39,7 @@ export const CreateFeatureModal = ({
   onClose,
 }: CreateFeatureModalProps) => {
   const classes = useStyles();
-  const alertApi = useApi(alertApiRef);
+  const toastApi = useApi(toastApiRef);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [titleError, setTitleError] = useState('');
@@ -64,15 +65,15 @@ export const CreateFeatureModal = ({
   // Show alert when error changes
   useEffect(() => {
     if (error) {
-      alertApi.post({
-        message: `Failed to create feature: ${
+      toastApi.post({
+        title: `Failed to create feature: ${
           error instanceof Error ? error.message : String(error)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [error, alertApi]);
+  }, [error, toastApi]);
 
   const resetForm = () => {
     setTitle('');
@@ -120,10 +121,10 @@ export const CreateFeatureModal = ({
       { title, description },
       {
         onSuccess: () => {
-          alertApi.post({
-            message: 'Feature suggestion submitted successfully!',
-            severity: 'success',
-            display: 'transient',
+          toastApi.post({
+            title: 'Feature suggestion submitted successfully!',
+            status: 'success',
+            timeout: 5000,
           });
           handleClose();
         },

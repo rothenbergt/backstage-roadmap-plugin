@@ -13,16 +13,18 @@ import {
   UserInfoService,
   PermissionsService,
 } from '@backstage/backend-plugin-api';
-import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
 import { NotificationService } from '@backstage/plugin-notifications-node';
-import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common';
+import { EventsService } from '@backstage/plugin-events-node';
+import { SignalsService } from '@backstage/plugin-signals-node';
 import { commentsRouter } from './commentsRouter';
 import { featuresRouter } from './featuresRouter';
 import { votesRouter } from './votesRouter';
 import { permissionCheckRouter } from './permissionCheckRouter';
 
 /**
- * Options for configuring the roadmap plugin router
+ * Options for configuring the roadmap plugin router.
+ *
+ * @public
  */
 export interface RouterOptions {
   logger: LoggerService;
@@ -37,11 +39,17 @@ export interface RouterOptions {
   boardConfigResponse: RoadmapBoardConfigResponse;
   /** Optional so the router also works in setups without the notifications service. */
   notifications?: NotificationService;
+  /** Optional: integrations can subscribe to roadmap changes on the events bus. */
+  events?: EventsService;
+  /** Optional: open boards refresh live when signals are available. */
+  signals?: SignalsService;
 }
 
 /**
- * Creates the main router for the roadmap plugin
- * Sets up sub-routers for features, comments, votes, and permissions
+ * Creates the main router for the roadmap plugin.
+ * Sets up sub-routers for features, comments, votes, and permissions.
+ *
+ * @public
  */
 export async function createRouter(
   options: RouterOptions,
@@ -51,18 +59,11 @@ export async function createRouter(
   const router = Router();
   router.use(express.json());
 
-  // Set up permission integration for Backstage permission framework
-  const permissionIntegrationRouter = createPermissionIntegrationRouter({
-    permissions: roadmapPermissions,
-  });
-
   // Health check endpoint
   router.get('/health', (_, response) => {
     logger.info('PONG!');
     response.json({ status: 'ok' });
   });
-
-  router.use(permissionIntegrationRouter);
 
   // Register sub-routers
   router.use('/comments', commentsRouter(options));

@@ -11,8 +11,8 @@ const features = [
     status: 'Planned',
     votes: 12,
     author: 'user:default/alice',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-02T00:00:00Z',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-02T00:00:00Z',
   },
   {
     id: '2',
@@ -21,8 +21,8 @@ const features = [
     status: 'Suggested',
     votes: 4,
     author: 'user:default/bob',
-    created_at: '2026-01-03T00:00:00Z',
-    updated_at: '2026-01-03T00:00:00Z',
+    createdAt: '2026-01-03T00:00:00Z',
+    updatedAt: '2026-01-03T00:00:00Z',
   },
 ];
 

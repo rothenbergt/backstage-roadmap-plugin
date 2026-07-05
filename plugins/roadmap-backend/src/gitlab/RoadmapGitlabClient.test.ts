@@ -180,6 +180,29 @@ describe('RoadmapGitlabClient', () => {
       expect(features.find(f => f.id === '1')?.votes).toBe(1);
       expect(features.find(f => f.id === '2')?.votes).toBe(2);
     });
+
+    it('normalizes GitLab timestamps to ISO 8601 UTC', async () => {
+      const client = createClient();
+      // Offset timestamp: must come back as UTC with the same instant
+      const issues = [
+        makeIssue({ iid: 1, created_at: '2024-06-01T12:00:00.000+02:00' }),
+      ];
+
+      server.use(
+        http.get(issuesUrl, () =>
+          HttpResponse.json(issues, { headers: { 'x-next-page': '' } }),
+        ),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
+      );
+
+      const [feature] = await client.getAllFeatures();
+      expect(feature.createdAt).toBe('2024-06-01T10:00:00.000Z');
+      expect(feature.updatedAt).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      );
+    });
   });
 
   describe('getFeatureById', () => {

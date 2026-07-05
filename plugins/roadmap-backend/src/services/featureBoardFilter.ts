@@ -48,9 +48,7 @@ export function filterFeaturesForBoardList(
       return true;
     }
     const anchor =
-      col.retentionAnchor === 'created'
-        ? feature.created_at
-        : feature.updated_at;
+      col.retentionAnchor === 'created' ? feature.createdAt : feature.updatedAt;
     const ts = parseFeatureDate(anchor);
     return ts >= retentionCutoffMs(days);
   });

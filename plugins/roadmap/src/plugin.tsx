@@ -35,7 +35,9 @@ const roadmapPage = PageBlueprint.make({
 });
 
 /**
- * The Roadmap plugin provides a public roadmap of features with voting and commenting
+ * The Roadmap plugin provides a public roadmap of features with voting and commenting.
+ *
+ * @public
  */
 export const roadmapPlugin = createFrontendPlugin({
   pluginId: 'roadmap',

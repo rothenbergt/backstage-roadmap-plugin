@@ -10,6 +10,21 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      # Postgres for TestDatabases, provided via connection string the same
+      # way Backstage core CI does it. Without this, backend-test-utils falls
+      # back to testcontainers, whose native ssh2 bindings crash jest workers.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
@@ -43,8 +58,13 @@ jobs:
       - name: Type check
         run: yarn tsc
 
+      - name: Verify API reports
+        run: yarn build:api-reports && git diff --exit-code -- '**/report.api.md'
+
       - name: Build
         run: yarn build:all
 
       - name: Test
+        env:
+          BACKSTAGE_TEST_DATABASE_POSTGRES16_CONNECTION_STRING: postgresql://postgres:postgres@localhost:5432
         run: yarn test:all

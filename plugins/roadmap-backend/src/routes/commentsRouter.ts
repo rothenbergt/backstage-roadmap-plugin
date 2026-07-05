@@ -4,6 +4,7 @@ import { RouterOptions } from './router';
 import { CommentService } from '../services/CommentService';
 import { PermissionService } from '../services/PermissionService';
 import { RoadmapNotificationService } from '../services/RoadmapNotificationService';
+import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { getAdminUsers } from '../config';
 import { InputError, NotAllowedError } from '@backstage/errors';
 
@@ -24,6 +25,11 @@ export function commentsRouter(options: RouterOptions): express.Router {
         getAdminUsers(options.config),
       )
     : undefined;
+  const eventPublisher = new RoadmapEventPublisher(
+    logger,
+    options.events,
+    options.signals,
+  );
 
   // Add a comment to a feature
   router.post('/', async (req, res, next) => {
@@ -39,9 +45,8 @@ export function commentsRouter(options: RouterOptions): express.Router {
 
       if (roadmapNotifications) {
         // Fire-and-forget: neither the feature lookup nor the send may fail
-        // the comment request. Uses the request's featureId because the
-        // database datasource returns the column name feature_id instead.
-        db.getFeatureById(featureId)
+        // the comment request.
+        db.getFeatureById(comment.featureId)
           .then(feature =>
             roadmapNotifications.notifyCommentAdded(feature, username),
           )
@@ -52,6 +57,7 @@ export function commentsRouter(options: RouterOptions): express.Router {
           });
       }
 
+      eventPublisher.commentAdded(comment, username);
       res.status(201).json(comment);
     } catch (error) {
       next(error);
@@ -87,6 +93,7 @@ export function commentsRouter(options: RouterOptions): express.Router {
       }
       const { commentId } = req.params;
       await commentService.deleteComment(commentId);
+      eventPublisher.commentDeleted(commentId, username);
       res.status(204).send();
     } catch (error) {
       next(error);

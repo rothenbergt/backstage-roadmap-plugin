@@ -3,6 +3,9 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { notificationService } from '@backstage/plugin-notifications-node';
+import { eventsServiceRef } from '@backstage/plugin-events-node';
+import { signalsServiceRef } from '@backstage/plugin-signals-node';
+import { roadmapPermissions } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { createRouter } from './routes';
 import { RoadmapDatasource } from './types';
 import { RoadmapDatabaseClient } from './database/RoadmapDatabaseClient';
@@ -11,9 +14,11 @@ import { getDatasource, getGitlabConfig, isPermissionEnabled } from './config';
 import { getBoardConfigResponse, getMergedBoardColumns } from './boardConfig';
 
 /**
- * Backend plugin for the Roadmap feature
+ * Backend plugin for the Roadmap feature.
  *
- * Provides endpoints for managing roadmap features, comments, and votes
+ * Provides endpoints for managing roadmap features, comments, and votes.
+ *
+ * @public
  */
 export const roadmapPlugin = createBackendPlugin({
   pluginId: 'roadmap',
@@ -27,8 +32,11 @@ export const roadmapPlugin = createBackendPlugin({
         userInfo: coreServices.userInfo,
         httpAuth: coreServices.httpAuth,
         permissions: coreServices.permissions,
+        permissionsRegistry: coreServices.permissionsRegistry,
         cache: coreServices.cache,
         notifications: notificationService,
+        events: eventsServiceRef,
+        signals: signalsServiceRef,
       },
       async init({
         httpRouter,
@@ -38,9 +46,14 @@ export const roadmapPlugin = createBackendPlugin({
         userInfo,
         httpAuth,
         permissions,
+        permissionsRegistry,
         cache,
         notifications,
+        events,
+        signals,
       }) {
+        permissionsRegistry.addPermissions(roadmapPermissions);
+
         const datasource = getDatasource(config);
         const permissionEnabled = isPermissionEnabled(config);
         const boardColumns = getMergedBoardColumns(config);
@@ -79,6 +92,8 @@ export const roadmapPlugin = createBackendPlugin({
             boardColumns,
             boardConfigResponse,
             notifications,
+            events,
+            signals,
           }),
         );
         httpRouter.addAuthPolicy({

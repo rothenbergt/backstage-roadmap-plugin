@@ -90,8 +90,8 @@ type FeatureCardProps = {
 
 export const FeatureCard = ({ feature, onClick }: FeatureCardProps) => {
   const classes = useStyles();
-  const { id, title, description, votes, hasVoted, created_at } = feature;
-  const age = formatRelativeTime(created_at);
+  const { id, title, description, votes, hasVoted, createdAt } = feature;
+  const age = formatRelativeTime(createdAt);
 
   // Prevent vote click from triggering the card click
   const handleVoteClick = (e: MouseEvent) => {

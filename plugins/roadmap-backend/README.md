@@ -8,9 +8,11 @@ This plugin follows a layered architecture with clear separation of concerns:
 
 ### 1. Database Layer
 
-- **RoadmapDatabaseClient**: Handles direct database operations through Knex
+- **RoadmapDatabaseClient**: A thin aggregate over per-table stores (**FeaturesStore**, **CommentsStore**, **VotesStore**)
+- Each store owns its table's queries and maps snake_case rows to the camelCase API types in one place (`database/tables.ts`), so column names never leak past this layer
 - Uses transactions for all write operations to ensure data consistency
 - Maps database errors to Backstage's error types for consistent error handling
+- Store tests run against both sqlite and Postgres via `TestDatabases`
 
 ### 2. Service Layer
 
@@ -20,6 +22,8 @@ This plugin follows a layered architecture with clear separation of concerns:
   - **CommentService**: Comment creation and retrieval
   - **VoteService**: Vote toggling and counting
   - **PermissionService**: Authorization and permission checks
+  - **RoadmapEventPublisher**: Publishes every mutation to the Backstage events bus and broadcasts signals for live board updates (both optional and fire-and-forget; a missing events or signals service never fails a request)
+  - **RoadmapNotificationService**: Sends Backstage notifications for status changes, comments, and new suggestions
 
 ### 3. Route Layer
 
@@ -35,6 +39,26 @@ This plugin follows a layered architecture with clear separation of concerns:
 - Uses Backstage's built-in error types and middleware
 - Errors bubble up through layers and are handled centrally
 - Provides consistent error responses with appropriate HTTP status codes
+
+## API Contract
+
+All responses use camelCase field names and ISO 8601 UTC timestamps, regardless of datasource or database dialect. A feature looks like:
+
+```json
+{
+  "id": "42",
+  "title": "Dark mode",
+  "description": "Support dark mode",
+  "status": "Suggested",
+  "author": "user:default/jdoe",
+  "votes": 3,
+  "boardPosition": 0,
+  "createdAt": "2026-07-04T10:15:30.000Z",
+  "updatedAt": "2026-07-04T12:00:00.000Z"
+}
+```
+
+Comments follow the same conventions (`featureId`, `createdAt`, `updatedAt`).
 
 ## API Endpoints
 
@@ -86,7 +110,7 @@ When `roadmap.source` is `gitlab`, behavior stays limited to what the GitLab int
 
 The plugin sets up three main tables:
 
-- **features**: Roadmap items with title, description, status, `board_position` (ordering within a status), etc.
+- **features**: Roadmap items with title, description, status, `board_position` (ordering within a status), etc. Columns are snake_case; the store layer maps them to the camelCase API types.
 - **comments**: User comments on features
 - **votes**: User votes on features with unique constraint
 

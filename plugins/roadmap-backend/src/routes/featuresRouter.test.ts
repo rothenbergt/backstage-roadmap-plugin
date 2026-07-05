@@ -137,8 +137,8 @@ describe('featuresRouter', () => {
         status: FeatureStatus.Suggested,
         votes: 0,
         author: 'user:default/admin',
-        created_at: '2024-01-01 00:00:00',
-        updated_at: '2024-01-01 00:00:00',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       });
 
       ({ server, baseUrl } = await startServer(
@@ -169,8 +169,8 @@ describe('featuresRouter', () => {
         status: FeatureStatus.Suggested,
         votes: 0,
         author: 'user:default/testuser',
-        created_at: '2024-01-01 00:00:00',
-        updated_at: '2024-01-01 00:00:00',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       });
 
       ({ server, baseUrl } = await startServer(
@@ -233,7 +233,7 @@ describe('featuresRouter', () => {
     });
   });
 
-  describe('GitLab datasource — database-only routes', () => {
+  describe('GitLab datasource â€” database-only routes', () => {
     function createGitlabApp() {
       const cfg = new ConfigReader({
         roadmap: { adminUsers: ['user:default/admin'] },
@@ -285,8 +285,8 @@ describe('featuresRouter', () => {
       description: 'Please',
       votes: 0,
       author: 'user:default/author',
-      created_at: '2024-01-01 00:00:00',
-      updated_at: '2024-01-01 00:00:00',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     };
 
     it('notifies admins when a feature is created, excluding the author', async () => {
@@ -377,6 +377,127 @@ describe('featuresRouter', () => {
 
       ({ server, baseUrl } = await startServer(
         createApp({ userInfo, db: mockDb, notifications: { send } }),
+      ));
+
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
+      });
+
+      expect(response.status).toBe(201);
+    });
+  });
+
+  // Guards the wiring, not just the publisher class: if a route stops
+  // calling the publisher, these fail.
+  describe('events and signals wiring', () => {
+    const baseFeature = {
+      id: '7',
+      title: 'Dark mode',
+      description: 'Please',
+      votes: 0,
+      author: 'user:default/author',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    };
+
+    function createEventMocks() {
+      return {
+        events: {
+          publish: jest.fn().mockResolvedValue(undefined),
+          subscribe: jest.fn(),
+        },
+        signals: { publish: jest.fn().mockResolvedValue(undefined) },
+      };
+    }
+
+    it('publishes an event and broadcasts a signal when a feature is created', async () => {
+      const { events, signals } = createEventMocks();
+      const mockDb = createMockDb();
+      const created = { ...baseFeature, status: FeatureStatus.Suggested };
+      mockDb.addFeature.mockResolvedValue(created);
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({ userInfo, db: mockDb, events, signals }),
+      ));
+
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
+      });
+
+      expect(response.status).toBe(201);
+      expect(events.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          topic: 'roadmap',
+          metadata: { action: 'create_feature' },
+          eventPayload: { feature: created, actor: 'user:default/admin' },
+        }),
+      );
+      expect(signals.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channel: 'roadmap:board',
+          recipients: { type: 'broadcast' },
+          message: expect.objectContaining({ kind: 'feature_created' }),
+        }),
+      );
+    });
+
+    it('publishes change_feature_status only when the status actually changes', async () => {
+      const { events, signals } = createEventMocks();
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+      const mockDb = createMockDb();
+      mockDb.getFeatureById.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Planned,
+      });
+      mockDb.updateFeatureStatus.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Planned,
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({ userInfo, db: mockDb, events, signals }),
+      ));
+
+      // No-op move: Planned -> Planned
+      const response = await fetch(`${baseUrl}/7/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: FeatureStatus.Planned }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(events.publish).not.toHaveBeenCalled();
+      expect(signals.publish).not.toHaveBeenCalled();
+    });
+
+    it('does not fail the request when event publishing rejects', async () => {
+      const events = {
+        publish: jest.fn().mockRejectedValue(new Error('down')),
+        subscribe: jest.fn(),
+      };
+      const signals = {
+        publish: jest.fn().mockRejectedValue(new Error('down')),
+      };
+      const mockDb = createMockDb();
+      mockDb.addFeature.mockResolvedValue({
+        ...baseFeature,
+        status: FeatureStatus.Suggested,
+      });
+      const userInfo = mockServices.userInfo({
+        userEntityRef: 'user:default/admin',
+      });
+
+      ({ server, baseUrl } = await startServer(
+        createApp({ userInfo, db: mockDb, events, signals }),
       ));
 
       const response = await fetch(baseUrl, {

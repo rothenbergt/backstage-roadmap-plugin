@@ -43,12 +43,9 @@ import {
   Progress,
   ResponseErrorPanel,
 } from '@backstage/core-components';
-import {
-  useApi,
-  alertApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
-import { EntityDisplayName } from '@backstage/plugin-catalog-react';
+import { useApi, identityApiRef } from '@backstage/core-plugin-api';
+import { toastApiRef } from '@backstage/frontend-plugin-api';
+import { EntityRefLink } from '@backstage/plugin-catalog-react';
 
 const useStyles = makeStyles(theme => ({
   drawer: {
@@ -172,7 +169,7 @@ export const FeatureDetailsDrawer = ({
   capabilities: capabilitiesProp,
 }: FeatureDetailsDrawerProps) => {
   const classes = useStyles();
-  const alertApi = useApi(alertApiRef);
+  const toastApi = useApi(toastApiRef);
   const identityApi = useApi(identityApiRef);
   const caps = capabilitiesProp ?? defaultCapabilities;
   const [userEntityRef, setUserEntityRef] = useState<string | undefined>();
@@ -230,58 +227,58 @@ export const FeatureDetailsDrawer = ({
   // Show alert when error occurs
   useEffect(() => {
     if (error) {
-      alertApi.post({
-        message: `Failed to load feature: ${
+      toastApi.post({
+        title: `Failed to load feature: ${
           error instanceof Error ? error.message : String(error)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [error, alertApi]);
+  }, [error, toastApi]);
 
   // Show alert when update error occurs
   useEffect(() => {
     if (updateError) {
-      alertApi.post({
-        message: `Failed to update feature status: ${
+      toastApi.post({
+        title: `Failed to update feature status: ${
           updateError instanceof Error
             ? updateError.message
             : String(updateError)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [updateError, alertApi]);
+  }, [updateError, toastApi]);
 
   useEffect(() => {
     if (updateDetailsError) {
-      alertApi.post({
-        message: `Failed to save feature: ${
+      toastApi.post({
+        title: `Failed to save feature: ${
           updateDetailsError instanceof Error
             ? updateDetailsError.message
             : String(updateDetailsError)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [updateDetailsError, alertApi]);
+  }, [updateDetailsError, toastApi]);
 
   useEffect(() => {
     if (deleteFeatureError) {
-      alertApi.post({
-        message: `Failed to delete feature: ${
+      toastApi.post({
+        title: `Failed to delete feature: ${
           deleteFeatureError instanceof Error
             ? deleteFeatureError.message
             : String(deleteFeatureError)
         }`,
-        severity: 'error',
-        display: 'transient',
+        status: 'danger',
+        timeout: 5000,
       });
     }
-  }, [deleteFeatureError, alertApi]);
+  }, [deleteFeatureError, toastApi]);
 
   // Show success message when status is updated
   useEffect(() => {
@@ -290,13 +287,13 @@ export const FeatureDetailsDrawer = ({
         c => c.status === updatedFeature.status,
       );
       const statusTitle = column?.title ?? updatedFeature.status;
-      alertApi.post({
-        message: `Feature status updated to ${statusTitle}`,
-        severity: 'success',
-        display: 'transient',
+      toastApi.post({
+        title: `Feature status updated to ${statusTitle}`,
+        status: 'success',
+        timeout: 5000,
       });
     }
-  }, [isUpdateSuccess, updatedFeature, alertApi, boardConfig]);
+  }, [isUpdateSuccess, updatedFeature, toastApi, boardConfig]);
 
   const handleStatusChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     const newStatus = event.target.value as FeatureStatus;
@@ -358,10 +355,10 @@ export const FeatureDetailsDrawer = ({
         {
           onSuccess: () => {
             setEditingDetails(false);
-            alertApi.post({
-              message: 'Feature updated',
-              severity: 'success',
-              display: 'transient',
+            toastApi.post({
+              title: 'Feature updated',
+              status: 'success',
+              timeout: 5000,
             });
           },
         },
@@ -372,10 +369,10 @@ export const FeatureDetailsDrawer = ({
       deleteFeature(featureId, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
-          alertApi.post({
-            message: 'Feature deleted',
-            severity: 'success',
-            display: 'transient',
+          toastApi.post({
+            title: 'Feature deleted',
+            status: 'success',
+            timeout: 5000,
           });
           onClose();
         },
@@ -463,7 +460,7 @@ export const FeatureDetailsDrawer = ({
           <Typography component="div" className={classes.metaLine}>
             <span>
               Suggested by{' '}
-              <EntityDisplayName
+              <EntityRefLink
                 entityRef={parseEntityRef(feature.author, {
                   defaultKind: 'user',
                   defaultNamespace: 'default',
@@ -472,11 +469,11 @@ export const FeatureDetailsDrawer = ({
               />
             </span>
             <span className={classes.metaSeparator}>·</span>
-            <span>Created {formatDate(feature.created_at)}</span>
-            {feature.created_at !== feature.updated_at && (
+            <span>Created {formatDate(feature.createdAt)}</span>
+            {feature.createdAt !== feature.updatedAt && (
               <>
                 <span className={classes.metaSeparator}>·</span>
-                <span>Updated {formatDate(feature.updated_at)}</span>
+                <span>Updated {formatDate(feature.updatedAt)}</span>
               </>
             )}
           </Typography>

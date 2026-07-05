@@ -35,6 +35,8 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 - 🔔 Backstage notifications for status changes, comments, and new suggestions
 - 🔍 (Optional) Backstage search integration via a collator module
 - 🔗 Deep links: `/roadmap?feature=<id>` opens a feature directly
+- ⚡ Live board updates via Backstage signals (votes and status changes appear without a refresh)
+- 🔌 Events for integrators: every change is published to the Backstage events bus
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
 - 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
@@ -56,6 +58,11 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
    ```
 
 3. The frontend plugin uses the new Backstage frontend system and is automatically discovered. No additional wiring is needed in your app.
+
+That's the whole core install. The shared types package (`@rothenbergt/backstage-plugin-roadmap-common`) comes along automatically as a dependency. Two optional add-ons unlock more:
+
+- **Search**: index roadmap features into Backstage global search with `@rothenbergt/backstage-plugin-search-backend-module-roadmap` (see [Search](#search) below).
+- **Live updates**: install the Backstage signals plugins and open boards refresh in real time (see [Live updates](#live-updates-signals) below).
 
 ## 🖥️ Usage
 
@@ -111,21 +118,13 @@ Details worth knowing:
 
 #### Why new-suggestion recipients come from config, not the permission framework
 
-You might expect "notify the admins" to ask the permission framework who the admins are. It can't, and this is a limitation of core Backstage itself, not of this plugin.
-
-The permission framework answers exactly one kind of question: "is the user making this request allowed to do this thing?" That works great for gating admin actions, and this plugin uses it that way: when the framework is enabled, every status change, edit, and delete is checked against `roadmap.admin` before it happens.
-
-What the framework cannot answer is "give me the list of everyone who is an admin." That list does not exist anywhere. Who counts as an admin is decided by your permission policy, which is code you write (or an RBAC plugin provides), and it can decide however it wants: group membership, resource ownership, an external system, anything. The core interface (`PermissionEvaluator` in `@backstage/plugin-permission-common`) only exposes per-request decisions, so there is nothing to enumerate. Upstream plugins hit the same wall, which is why announcements broadcasts to everyone rather than targeting a subset.
-
-So notifications need their own answer for "who cares about new suggestions", and that is `roadmap.adminUsers`. The good news is it accepts **group refs**, and the notifications backend expands group membership from the catalog:
+The permission framework decides what admins may do, but it cannot enumerate who the admins are (it only answers per-request "is this user allowed?" questions), so notification recipients come from `roadmap.adminUsers`. The list accepts **group refs**, and the notifications backend expands membership from the catalog. If you use an RBAC plugin, point it at the same catalog group your roles are bound to and membership stays managed in one place:
 
 ```yaml
 roadmap:
   adminUsers:
     - group:default/devex-team
 ```
-
-If you use an RBAC plugin, its roles are usually bound to a catalog group already, so point `adminUsers` at that same group and membership stays managed in one place. The permission framework still decides what those admins may do; the config just says who gets the ping.
 
 ### Search
 
@@ -143,6 +142,24 @@ backend.add(
 
 See the [module README](plugins/search-backend-module-roadmap/README.md) for schedule configuration.
 
+### Live updates (signals)
+
+If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes: new suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals; the board just falls back to regular refetching.
+
+### Events (for integrators)
+
+The backend publishes every change to the Backstage [events service](https://backstage.io/docs/plugins/events/) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`, `reorder_board`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
+
+```typescript
+events.subscribe({
+  id: 'my-roadmap-listener',
+  topics: ['roadmap'],
+  onEvent: async params => {
+    // params.eventPayload has the feature/comment and the acting user
+  },
+});
+```
+
 ### Board columns (labels and visibility)
 
 Optional `roadmap.columns` in `app-config.yaml` customizes each status column on the roadmap board. The backend merges your entries with built-in defaults and exposes the resolved layout to the UI via `GET /features/board-config` (so the browser does not parse this YAML itself).
@@ -159,7 +176,7 @@ Add a list under `columns`. Each item supports:
 
 **Defaults:** Every status has a column. **In Progress** is included but **`visible: false` by default**, so the board matches the classic four-column layout until you turn it on. Other statuses default to visible.
 
-**Example** — each row uses `status` (required for the merge). The block below shows **every optional field** at least once: `title`, `visible`, `retentionDays`, and both `retentionAnchor` values (`created` / `updated`). Retention only affects the default feature list when using the **database** datasource.
+**Example** showing every optional field (retention only affects the **database** datasource):
 
 ```yaml
 roadmap:
@@ -255,7 +272,7 @@ We welcome contributions! Here's how to get started:
    Testing notifications locally: you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
 
 4. Make your changes
-5. Run tests: `yarn test:all`
+5. Run tests: `yarn test:all` (the database store tests also run against Postgres via [testcontainers](https://node.testcontainers.org/) when Docker is available; set `BACKSTAGE_TEST_DISABLE_DOCKER=1` to run sqlite-only. CI provides Postgres as a service container and runs both.)
 6. Run lint: `yarn lint:all`
 
 **`jwa` resolutions:** `jws` v3 depends on `jwa` 1.x and `jws` v4 on `jwa` 2.x, so root `package.json` pins both majors separately. Replacing them with one version would break one of those stacks unless upstream upgrades.
