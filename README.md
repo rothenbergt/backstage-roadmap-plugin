@@ -59,6 +59,11 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 
 3. The frontend plugin uses the new Backstage frontend system and is automatically discovered. No additional wiring is needed in your app.
 
+That's the whole core install. The shared types package (`@rothenbergt/backstage-plugin-roadmap-common`) comes along automatically as a dependency. Two optional add-ons unlock more:
+
+- **Search**: index roadmap features into Backstage global search with `@rothenbergt/backstage-plugin-search-backend-module-roadmap` (see [Search](#search) below).
+- **Live updates**: install the Backstage signals plugins and open boards refresh in real time (see [Live updates](#live-updates-signals) below).
+
 ## 🖥️ Usage
 
 After installation, navigate to the `/roadmap` route in your Backstage instance. From there, you can:
@@ -151,7 +156,7 @@ If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signa
 
 ### Events (for integrators)
 
-The backend publishes every change to the Backstage [events service](https://backstage.io/docs/plugins/events/) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
+The backend publishes every change to the Backstage [events service](https://backstage.io/docs/plugins/events/) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`, `reorder_board`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
 
 ```typescript
 events.subscribe({
@@ -275,7 +280,7 @@ We welcome contributions! Here's how to get started:
    Testing notifications locally: you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
 
 4. Make your changes
-5. Run tests: `yarn test:all`
+5. Run tests: `yarn test:all` (the database store tests also run against Postgres via [testcontainers](https://node.testcontainers.org/) when Docker is available; set `BACKSTAGE_TEST_DISABLE_DOCKER=1` to run sqlite-only. CI provides Postgres as a service container and runs both.)
 6. Run lint: `yarn lint:all`
 
 **`jwa` resolutions:** `jws` v3 depends on `jwa` 1.x and `jws` v4 on `jwa` 2.x, so root `package.json` pins both majors separately. Replacing them with one version would break one of those stacks unless upstream upgrades.
