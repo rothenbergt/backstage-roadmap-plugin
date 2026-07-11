@@ -1,18 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
-import { useCreateFeature } from '../../hooks';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
   Box,
+  Button,
+  ButtonBase,
+  Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
   Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
+import { useCreateFeature } from '../../hooks';
+import { StatusChip, VoteButton } from '../../components';
+import { useSimilarFeatures } from './useSimilarFeatures';
+
+const TITLE_MAX_LENGTH = 100;
 
 const useStyles = makeStyles(theme => ({
   form: {
@@ -26,6 +32,39 @@ const useStyles = makeStyles(theme => ({
   },
   dialogActions: {
     padding: theme.spacing(2, 3),
+  },
+  similarSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1),
+    // Appears between title and description while typing, so it stays
+    // visually quiet instead of competing with the form
+    marginTop: theme.spacing(-1),
+  },
+  similarRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  similarTitleButton: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'flex-start',
+    textAlign: 'left',
+  },
+  similarTitleText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  similarDescription: {
+    paddingLeft: theme.spacing(6),
+    // Clamp instead of scroll so expanding adds a small, predictable amount
+    // of height to the dialog without showing an inner scrollbar
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
   },
 }));
 
@@ -42,11 +81,13 @@ export const CreateFeatureModal = ({
   const toastApi = useApi(toastApiRef);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [titleError, setTitleError] = useState('');
-  const [descriptionError, setDescriptionError] = useState('');
+  // Clicking a similar suggestion expands it in place instead of opening
+  // the details drawer, so the user never loses the form they are filling in
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: createFeature, isPending, error } = useCreateFeature();
+  const similarFeatures = useSimilarFeatures(title);
 
   useEffect(() => {
     let frameId = 0;
@@ -62,7 +103,6 @@ export const CreateFeatureModal = ({
     };
   }, [open]);
 
-  // Show alert when error changes
   useEffect(() => {
     if (error) {
       toastApi.post({
@@ -75,50 +115,27 @@ export const CreateFeatureModal = ({
     }
   }, [error, toastApi]);
 
+  // The component stays mounted while the dialog is hidden, so a dismissal
+  // keeps the draft and reopening picks up right where the user left off.
+  // Only an explicit cancel or a successful submit clears the fields.
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setTitleError('');
-    setDescriptionError('');
+    setExpandedId(null);
   };
 
-  const handleClose = () => {
+  const handleCancel = () => {
     resetForm();
     onClose();
   };
 
-  const validateForm = () => {
-    let isValid = true;
-
-    if (!title.trim()) {
-      setTitleError('Title is required');
-      isValid = false;
-    } else if (title.length > 100) {
-      setTitleError('Title cannot be longer than 100 characters');
-      isValid = false;
-    } else {
-      setTitleError('');
-    }
-
-    if (!description.trim()) {
-      setDescriptionError('Description is required');
-      isValid = false;
-    } else {
-      setDescriptionError('');
-    }
-
-    return isValid;
-  };
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-
-    if (!validateForm()) {
+    if (!title.trim() || !description.trim()) {
       return;
     }
-
     createFeature(
-      { title, description },
+      { title: title.trim(), description: description.trim() },
       {
         onSuccess: () => {
           toastApi.post({
@@ -126,14 +143,15 @@ export const CreateFeatureModal = ({
             status: 'success',
             timeout: 5000,
           });
-          handleClose();
+          resetForm();
+          onClose();
         },
       },
     );
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md">
+    <Dialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle>Suggest a Feature</DialogTitle>
 
       <DialogContent className={classes.dialogContent}>
@@ -146,12 +164,63 @@ export const CreateFeatureModal = ({
             onChange={e => setTitle(e.target.value)}
             fullWidth
             required
-            error={!!titleError}
-            helperText={titleError}
             disabled={isPending}
             inputRef={titleInputRef}
-            inputProps={{ maxLength: 100 }}
+            inputProps={{ maxLength: TITLE_MAX_LENGTH }}
           />
+
+          {similarFeatures.length > 0 && (
+            <div className={classes.similarSection}>
+              <Typography variant="caption" color="textSecondary">
+                Looks similar to existing suggestions. Vote instead?
+              </Typography>
+              {similarFeatures.map(feature => (
+                <div key={feature.id}>
+                  <div className={classes.similarRow}>
+                    <VoteButton
+                      featureId={feature.id}
+                      hasVoted={feature.hasVoted}
+                      voteCount={feature.votes}
+                      size="small"
+                    />
+                    <ButtonBase
+                      className={classes.similarTitleButton}
+                      onClick={() =>
+                        setExpandedId(current =>
+                          current === feature.id ? null : feature.id,
+                        )
+                      }
+                      aria-expanded={expandedId === feature.id}
+                      title={
+                        expandedId === feature.id
+                          ? 'Hide details'
+                          : 'Show details'
+                      }
+                      disableRipple
+                    >
+                      <Typography
+                        variant="body2"
+                        className={classes.similarTitleText}
+                      >
+                        {feature.title}
+                      </Typography>
+                    </ButtonBase>
+                    <StatusChip status={feature.status} size="small" />
+                  </div>
+                  <Collapse in={expandedId === feature.id} timeout={150}>
+                    <Typography
+                      variant="caption"
+                      color="textSecondary"
+                      component="div"
+                      className={classes.similarDescription}
+                    >
+                      {feature.description}
+                    </Typography>
+                  </Collapse>
+                </div>
+              ))}
+            </div>
+          )}
 
           <TextField
             id="create-feature-description"
@@ -163,13 +232,11 @@ export const CreateFeatureModal = ({
             multiline
             minRows={4}
             required
-            error={!!descriptionError}
-            helperText={descriptionError}
             disabled={isPending}
             placeholder="Describe the feature and why it would be valuable"
           />
 
-          <Box mt={2}>
+          <Box>
             <Typography variant="caption" color="textSecondary">
               Your suggestion will be visible to all users. The team will review
               it and may update its status.
@@ -179,14 +246,14 @@ export const CreateFeatureModal = ({
       </DialogContent>
 
       <DialogActions className={classes.dialogActions}>
-        <Button onClick={handleClose} disabled={isPending}>
+        <Button onClick={handleCancel} disabled={isPending}>
           Cancel
         </Button>
         <Button
           color="primary"
           variant="contained"
           onClick={handleSubmit}
-          disabled={isPending}
+          disabled={isPending || !title.trim() || !description.trim()}
         >
           {isPending ? 'Submitting...' : 'Submit'}
         </Button>
