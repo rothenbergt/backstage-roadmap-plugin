@@ -213,4 +213,37 @@ describe('RoadmapDatabaseClient', () => {
       expect(all.map(f => f.title)).toEqual(['B', 'A']);
     },
   );
+
+  it.each(databases.eachSupportedId())(
+    'a status change places the feature at the end of the destination column, %p',
+    async databaseId => {
+      const client = await createClient(databaseId);
+      const first = await client.addFeature({
+        title: 'Already planned',
+        description: 'x',
+        author: 'user:default/guest',
+      });
+      await client.updateFeatureStatus(first.id, FeatureStatus.Planned);
+
+      const second = await client.addFeature({
+        title: 'Moves later',
+        description: 'x',
+        author: 'user:default/guest',
+      });
+      // Force a low position in the old column that would sort first if the
+      // move carried it over
+      await client.reorderFeaturesInStatus(FeatureStatus.Suggested, [
+        second.id,
+      ]);
+      await client.updateFeatureStatus(second.id, FeatureStatus.Planned);
+
+      const planned = (await client.getAllFeatures()).filter(
+        f => f.status === FeatureStatus.Planned,
+      );
+      expect(planned.map(f => f.title)).toEqual([
+        'Already planned',
+        'Moves later',
+      ]);
+    },
+  );
 });

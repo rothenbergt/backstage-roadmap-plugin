@@ -6,7 +6,7 @@ import {
   Comment,
   NewComment,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
-import { InputError, NotAllowedError } from '@backstage/errors';
+import { InputError, NotImplementedError } from '@backstage/errors';
 import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 
 /**
@@ -23,11 +23,11 @@ export class CommentService implements CommentServiceInterface {
    * Validates a comment before adding it
    */
   private validateNewComment(comment: NewComment): void {
-    if (!comment.featureId) {
-      throw new InputError('Feature ID is required');
+    if (!comment.featureId || typeof comment.featureId !== 'string') {
+      throw new InputError('Feature ID is required and must be a string');
     }
 
-    if (!comment.text || comment.text.trim() === '') {
+    if (typeof comment.text !== 'string' || comment.text.trim() === '') {
       throw new InputError('Comment text is required and cannot be empty');
     }
 
@@ -55,7 +55,7 @@ export class CommentService implements CommentServiceInterface {
       this.datasource !== 'database' ||
       !(this.db instanceof RoadmapDatabaseClient)
     ) {
-      throw new NotAllowedError(
+      throw new NotImplementedError(
         'This operation is not supported for the GitLab roadmap datasource',
       );
     }

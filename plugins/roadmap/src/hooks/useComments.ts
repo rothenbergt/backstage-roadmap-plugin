@@ -28,10 +28,10 @@ export const useAddComment = (featureId: string) => {
   return useMutation({
     mutationFn: (text: string) => api.addComment({ featureId, text }),
     onSuccess: newComment => {
-      // Add the new comment to the cache
+      // Prepend because the backend returns comments newest-first
       queryClient.setQueryData<Comment[]>(
         ['roadmap', 'comments', featureId],
-        oldComments => [...(oldComments || []), newComment],
+        oldComments => [newComment, ...(oldComments || [])],
       );
     },
   });

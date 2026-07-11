@@ -8,7 +8,11 @@ import {
   FeatureStatus,
   RoadmapBoardColumnResolved,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
-import { InputError, NotAllowedError } from '@backstage/errors';
+import {
+  InputError,
+  NotAllowedError,
+  NotImplementedError,
+} from '@backstage/errors';
 import { filterFeaturesForBoardList } from './featureBoardFilter';
 import { RoadmapDatabaseClient } from '../database/RoadmapDatabaseClient';
 
@@ -30,7 +34,7 @@ export class FeatureService implements FeatureServiceInterface {
       this.datasource !== 'database' ||
       !(this.db instanceof RoadmapDatabaseClient)
     ) {
-      throw new NotAllowedError(
+      throw new NotImplementedError(
         'This operation is not supported for the GitLab roadmap datasource',
       );
     }
@@ -118,15 +122,18 @@ export class FeatureService implements FeatureServiceInterface {
   ): Promise<Feature> {
     const client = this.requireDatabase();
     if (fields.title !== undefined) {
-      if (!fields.title.trim()) {
-        throw new InputError('Title cannot be empty');
+      if (typeof fields.title !== 'string' || !fields.title.trim()) {
+        throw new InputError('Title must be a non-empty string');
       }
       if (fields.title.length > 100) {
         throw new InputError('Title cannot be longer than 100 characters');
       }
     }
-    if (fields.description !== undefined && !fields.description.trim()) {
-      throw new InputError('Description cannot be empty');
+    if (
+      fields.description !== undefined &&
+      (typeof fields.description !== 'string' || !fields.description.trim())
+    ) {
+      throw new InputError('Description must be a non-empty string');
     }
     return client.updateFeatureDetails(id, fields);
   }

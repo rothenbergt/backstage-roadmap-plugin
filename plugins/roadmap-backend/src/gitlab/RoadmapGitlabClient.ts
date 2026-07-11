@@ -6,11 +6,7 @@ import {
   FeatureStatus,
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { RoadmapDatasource } from '../types';
-import {
-  NotFoundError,
-  ConflictError,
-  NotAllowedError,
-} from '@backstage/errors';
+import { NotFoundError, ServiceUnavailableError } from '@backstage/errors';
 import { CacheService, LoggerService } from '@backstage/backend-plugin-api';
 import { GitlabConfig } from '../types';
 import { parseEntityRef } from '@backstage/catalog-model';
@@ -22,7 +18,11 @@ const STATUS_LABELS = Object.values(FeatureStatus).map(
 );
 const PAGINATION = 'per_page=100';
 
+// Markers persist the full Backstage entity ref (user:default/alice) so
+// namespaces are preserved. Legacy markers hold a bare username and are
+// still parsed for backward compatibility.
 const AUTHOR_TAG_RE = /^<!-- author:(\S+) -->\n/;
+const ISSUE_AUTHOR_TAG_RE = /^<!-- backstage-author:(\S+) -->\n/;
 const VOTE_TAG_RE = /^<!-- vote:(\S+) -->$/;
 
 interface GitLabIssue {
@@ -77,13 +77,20 @@ function mapGitLabIssueToFeature(
   issue: GitLabIssue,
   voteCount?: number,
 ): Feature {
+  const rawDescription = issue.description ?? '';
+  const authorMatch = rawDescription.match(ISSUE_AUTHOR_TAG_RE);
   return {
     id: String(issue.id),
     title: issue.title,
-    description: issue.description ?? '',
+    description: authorMatch
+      ? rawDescription.replace(ISSUE_AUTHOR_TAG_RE, '')
+      : rawDescription,
     status: extractStatusFromLabels(issue.labels ?? []),
     votes: voteCount ?? issue.upvotes ?? 0,
-    author: issue.author?.username ?? '',
+    // Issues created by this plugin carry the real Backstage author in a
+    // hidden tag because the GitLab issue author is just the API token owner.
+    // External issues fall back to the GitLab username.
+    author: authorMatch ? authorMatch[1] : issue.author?.username ?? '',
     createdAt: toIsoUtc(issue.created_at),
     updatedAt: toIsoUtc(issue.updated_at),
   };
@@ -119,12 +126,19 @@ function parseUsernameFromEntityRef(userEntityRef: string): string {
   return entity.name;
 }
 
-function buildAuthorTaggedBody(username: string, text: string): string {
-  return `<!-- author:${username} -->\n${text}`;
+function buildAuthorTaggedBody(authorRef: string, text: string): string {
+  return `<!-- author:${authorRef} -->\n${text}`;
 }
 
-function buildVoteMarker(username: string): string {
-  return `<!-- vote:${username} -->`;
+function buildVoteMarker(voterRef: string): string {
+  return `<!-- vote:${voterRef} -->`;
+}
+
+function buildIssueAuthorTaggedDescription(
+  authorRef: string,
+  description: string,
+): string {
+  return `<!-- backstage-author:${authorRef} -->\n${description}`;
 }
 
 function convertIssuesToFeatures(
@@ -148,16 +162,20 @@ function filterUserComments(notes: GitLabNote[]): GitLabNote[] {
 }
 
 function buildCommentBody(comment: NewComment): string {
-  const author = comment.author
-    ? parseUsernameFromEntityRef(comment.author)
-    : undefined;
-  return author ? buildAuthorTaggedBody(author, comment.text) : comment.text;
+  return comment.author
+    ? buildAuthorTaggedBody(comment.author, comment.text)
+    : comment.text;
 }
 
-function buildNewRoadmapIssuePayload(feature: NewFeature): string {
+function buildNewRoadmapIssuePayload(
+  feature: NewFeature & { author: string },
+): string {
   return JSON.stringify({
     title: feature.title,
-    description: feature.description,
+    description: buildIssueAuthorTaggedDescription(
+      feature.author,
+      feature.description,
+    ),
     labels: `${ROADMAP_LABEL},${formatStatusAsGitLabLabel(
       FeatureStatus.Suggested,
     )}`,
@@ -179,12 +197,43 @@ function voteCacheKey(featureId: string): string {
   return `roadmap:votes:${featureId}`;
 }
 
-function voteMapToJson(map: Map<string, number>): Record<string, number> {
+function voteMapToJson(map: Map<string, number[]>): Record<string, number[]> {
   return Object.fromEntries(map);
 }
 
-function jsonToVoteMap(json: Record<string, number>): Map<string, number> {
+function jsonToVoteMap(json: Record<string, number[]>): Map<string, number[]> {
   return new Map(Object.entries(json));
+}
+
+/** The keys a voter's markers may be stored under, newest format first. */
+function voterMarkerKeys(voterRef: string): string[] {
+  const username = parseUsernameFromEntityRef(voterRef);
+  return username === voterRef ? [voterRef] : [voterRef, username];
+}
+
+/**
+ * Groups raw marker keys into logical voters. A legacy username-only marker
+ * is folded into the canonical entity ref marker with the same name when
+ * that mapping is unambiguous, so one person with markers in both formats
+ * still counts as a single voter and unvotes cleanly.
+ */
+function normalizeVoters(
+  markers: Map<string, number[]>,
+): Map<string, number[]> {
+  const refKeyByName = new Map<string, string>();
+  for (const key of markers.keys()) {
+    if (key.includes('/')) {
+      const name = key.split('/').pop()!;
+      // An empty value marks an ambiguous name that must not be folded
+      refKeyByName.set(name, refKeyByName.has(name) ? '' : key);
+    }
+  }
+  const logical = new Map<string, number[]>();
+  for (const [key, ids] of markers) {
+    const target = key.includes('/') ? key : refKeyByName.get(key) || key;
+    logical.set(target, [...(logical.get(target) ?? []), ...ids]);
+  }
+  return logical;
 }
 
 export class RoadmapGitlabClient implements RoadmapDatasource {
@@ -198,8 +247,8 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   private async getCachedVotes(
     featureId: string,
-  ): Promise<Map<string, number> | undefined> {
-    const cached = await this.cache.get<Record<string, number>>(
+  ): Promise<Map<string, number[]> | undefined> {
+    const cached = await this.cache.get<Record<string, number[]>>(
       voteCacheKey(featureId),
     );
     return cached ? jsonToVoteMap(cached) : undefined;
@@ -207,7 +256,7 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   private async setCachedVotes(
     featureId: string,
-    data: Map<string, number>,
+    data: Map<string, number[]>,
   ): Promise<void> {
     await this.cache.set(voteCacheKey(featureId), voteMapToJson(data), {
       ttl: VOTE_CACHE_TTL_MS,
@@ -361,12 +410,14 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
           url,
         )})`,
       );
+      // Upstream failures are server-side problems, so they surface as 503
+      // instead of blaming the caller with a 403 or 409
       if (res.status === 401)
-        throw new NotAllowedError(
-          'GitLab API authentication failed: token is missing or invalid',
+        throw new ServiceUnavailableError(
+          'GitLab API authentication failed because the configured token is missing or invalid',
         );
       if (res.status === 404) throw new NotFoundError(text);
-      throw new ConflictError(`GitLab API error: ${res.status}`);
+      throw new ServiceUnavailableError(`GitLab API error: ${res.status}`);
     }
     if (res.status === 204 || res.headers.get('content-length') === '0') {
       return { data: undefined as T, res };
@@ -420,9 +471,11 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
     return data;
   }
 
-  private async createRoadmapIssue(feature: NewFeature): Promise<GitLabIssue> {
+  private async createRoadmapIssue(
+    feature: NewFeature & { author: string },
+  ): Promise<GitLabIssue> {
     if (this.isGroupMode && !this.defaultProjectId) {
-      throw new ConflictError(
+      throw new ServiceUnavailableError(
         'Creating features in group mode requires defaultProjectId to be configured',
       );
     }
@@ -466,15 +519,23 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   private async collectVoteMarkersByUser(
     featureId: string,
-  ): Promise<Map<string, number>> {
+  ): Promise<Map<string, number[]>> {
     const notes = await this.fetchIssueNotes(featureId, 'asc');
-    const votesByUser = new Map<string, number>();
+    // Every marker note is tracked (not just the latest) so an unvote can
+    // clean up duplicates left behind by concurrent toggles
+    const votesByUser = new Map<string, number[]>();
     for (const note of notes) {
       if (note.system) continue;
       const match = (note.body ?? '').trim().match(VOTE_TAG_RE);
-      if (match) votesByUser.set(match[1], note.id);
+      if (match) {
+        const ids = votesByUser.get(match[1]) ?? [];
+        ids.push(note.id);
+        votesByUser.set(match[1], ids);
+      }
     }
-    return votesByUser;
+    // Collapse aliases once here so count, hasVoted, and toggle all see the
+    // same logical voters
+    return normalizeVoters(votesByUser);
   }
 
   private async deleteNote(featureId: string, noteId: number): Promise<void> {
@@ -506,26 +567,32 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   private async removeVote(
     featureId: string,
-    noteId: number,
-    votesByUser: Map<string, number>,
-    username: string,
+    noteIds: number[],
+    votesByUser: Map<string, number[]>,
+    voterKeys: string[],
   ): Promise<void> {
-    await this.deleteNote(featureId, noteId);
-    votesByUser.delete(username);
+    // Delete every marker the voter has, including duplicates from
+    // concurrent toggles and legacy username-only markers
+    for (const noteId of noteIds) {
+      await this.deleteNote(featureId, noteId);
+    }
+    for (const key of voterKeys) {
+      votesByUser.delete(key);
+    }
   }
 
   private async addVote(
     featureId: string,
-    votesByUser: Map<string, number>,
-    username: string,
+    votesByUser: Map<string, number[]>,
+    voterRef: string,
   ): Promise<void> {
-    await this.createNote(featureId, buildVoteMarker(username));
-    votesByUser.set(username, 0);
+    const note = await this.createNote(featureId, buildVoteMarker(voterRef));
+    votesByUser.set(voterRef, [note.id]);
   }
 
   private async getOrFetchVotes(
     featureId: string,
-  ): Promise<Map<string, number>> {
+  ): Promise<Map<string, number[]>> {
     const cached = await this.getCachedVotes(featureId);
     if (cached) return cached;
     const votes = await this.collectVoteMarkersByUser(featureId);
@@ -598,7 +665,10 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
       status,
     );
     const updatedIssue = await this.updateIssueLabels(id, updatedLabels);
-    return mapGitLabIssueToFeature(updatedIssue);
+    // Label updates don't touch votes, so without this the mapping would
+    // fall back to GitLab's native upvotes and misreport the marker count.
+    const voteCount = await this.getVoteCount(id);
+    return mapGitLabIssueToFeature(updatedIssue, voteCount);
   }
 
   async toggleVote(
@@ -607,18 +677,29 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
   ): Promise<{ voteAdded: boolean; voteCount: number }> {
     await this.ensureIssueProjectCached(featureId);
     await this.invalidateCachedVotes(featureId);
-    const username = parseUsernameFromEntityRef(voter);
+    const voterKeys = voterMarkerKeys(voter);
     const votesByUser = await this.collectVoteMarkersByUser(featureId);
-    const existingNoteId = votesByUser.get(username);
+    const existingNoteIds = voterKeys.flatMap(
+      key => votesByUser.get(key) ?? [],
+    );
 
-    if (existingNoteId) {
-      await this.removeVote(featureId, existingNoteId, votesByUser, username);
+    if (existingNoteIds.length > 0) {
+      await this.removeVote(featureId, existingNoteIds, votesByUser, voterKeys);
     } else {
-      await this.addVote(featureId, votesByUser, username);
+      await this.addVote(featureId, votesByUser, voter);
     }
 
-    await this.setCachedVotes(featureId, votesByUser);
-    return { voteAdded: !existingNoteId, voteCount: votesByUser.size };
+    // Don't cache the locally modified map because a concurrent toggle may
+    // have added notes we never saw, and the snapshot would then serve a
+    // wrong count for the cache TTL. Invalidate and let the next read refetch.
+    // The returned count is still this request's local view, which is a
+    // deliberate trade-off since an exact answer would cost another full
+    // notes fetch and the next board load self-corrects anyway.
+    await this.invalidateCachedVotes(featureId);
+    return {
+      voteAdded: existingNoteIds.length === 0,
+      voteCount: votesByUser.size,
+    };
   }
 
   async getVoteCount(featureId: string): Promise<number> {
@@ -637,9 +718,8 @@ export class RoadmapGitlabClient implements RoadmapDatasource {
 
   async hasVoted(featureId: string, voter: string): Promise<boolean> {
     await this.ensureIssueProjectCached(featureId);
-    const username = parseUsernameFromEntityRef(voter);
     const votes = await this.getOrFetchVotes(featureId);
-    return votes.has(username);
+    return voterMarkerKeys(voter).some(key => votes.has(key));
   }
 
   async hasVotedBatch(

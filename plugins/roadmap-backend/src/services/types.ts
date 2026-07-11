@@ -28,7 +28,7 @@ export interface FeatureServiceInterface {
   /**
    * Get all roadmap features (board-filtered; same as listFeaturesForBoard(false))
    *
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   getAllFeatures(): Promise<Feature[]>;
 
@@ -36,7 +36,7 @@ export interface FeatureServiceInterface {
    * Get a single feature by ID
    *
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   getFeatureById(id: string): Promise<Feature>;
 
@@ -44,7 +44,7 @@ export interface FeatureServiceInterface {
    * Add a new feature
    *
    * @throws {InputError} When validation fails
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   addFeature(feature: NewFeature, author: string): Promise<Feature>;
 
@@ -53,7 +53,7 @@ export interface FeatureServiceInterface {
    *
    * @throws {InputError} When validation fails
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
 
@@ -81,7 +81,7 @@ export interface CommentServiceInterface {
    *
    * @throws {InputError} When validation fails
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   addComment(comment: NewComment): Promise<Comment>;
 
@@ -89,7 +89,7 @@ export interface CommentServiceInterface {
    * Get all comments for a feature
    *
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   getCommentsByFeatureId(featureId: string): Promise<Comment[]>;
 
@@ -104,7 +104,7 @@ export interface VoteServiceInterface {
    * Toggle a vote on a feature
    *
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   toggleVote(
     featureId: string,
@@ -115,28 +115,28 @@ export interface VoteServiceInterface {
    * Get vote count for a feature
    *
    * @throws {NotFoundError} When the feature doesn't exist
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   getVoteCount(featureId: string): Promise<number>;
 
   /**
    * Get vote counts for multiple features
    *
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   getVoteCounts(featureIds: string[]): Promise<Record<string, number>>;
 
   /**
    * Check if a user has voted on a feature
    *
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
 
   /**
    * Check if a user has voted on multiple features (batch operation)
    *
-   * @throws {ConflictError} When the database operation fails
+   * @throws {Error} When the database operation fails unexpectedly
    */
   hasVotedBatch(
     featureIds: string[],

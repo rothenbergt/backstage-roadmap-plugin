@@ -1,4 +1,5 @@
 import { useApi } from '@backstage/core-plugin-api';
+import { toastApiRef } from '@backstage/frontend-plugin-api';
 import { roadmapApiRef } from '../api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,6 +18,9 @@ export const useFeatures = (includeBeyondRetention = false) => {
 
   return useQuery({
     queryKey: ['roadmap', 'features', { includeBeyondRetention }],
+    // Fallback polling so an always-focused board without the signals
+    // plugin still picks up other users' changes eventually.
+    refetchInterval: 5 * 60 * 1000,
     queryFn: async () => {
       const features = await api.getFeatures({ includeBeyondRetention });
 
@@ -98,16 +102,52 @@ export const useDeleteFeature = () => {
 
 export const useReorderFeatures = () => {
   const api = useApi(roadmapApiRef);
+  const toastApi = useApi(toastApiRef);
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      status,
-      orderedIds,
-    }: {
-      status: FeatureStatus;
-      orderedIds: string[];
-    }) => api.reorderFeatures(status, orderedIds),
-    onSuccess: () => {
+  return useMutation<
+    unknown,
+    unknown,
+    { status: FeatureStatus; orderedIds: string[] },
+    Array<[readonly unknown[], FeatureWithVote[] | undefined]>
+  >({
+    mutationFn: ({ status, orderedIds }) =>
+      api.reorderFeatures(status, orderedIds),
+    // Apply the new order optimistically so follow-up clicks compute from
+    // the list the user is actually seeing
+    onMutate: async ({ status, orderedIds }) => {
+      await queryClient.cancelQueries({ queryKey: ['roadmap', 'features'] });
+      const previous = queryClient.getQueriesData<FeatureWithVote[]>({
+        queryKey: ['roadmap', 'features'],
+      });
+      const rank = new Map(orderedIds.map((id, index) => [id, index]));
+      queryClient.setQueriesData<FeatureWithVote[]>(
+        { queryKey: ['roadmap', 'features'] },
+        old => {
+          if (!old) return old;
+          return [...old].sort((a, b) => {
+            if (a.status !== status || b.status !== status) return 0;
+            const ra = rank.get(a.id);
+            const rb = rank.get(b.id);
+            if (ra === undefined || rb === undefined) return 0;
+            return ra - rb;
+          });
+        },
+      );
+      return previous;
+    },
+    onError: (err, _variables, context) => {
+      toastApi.post({
+        title: `Failed to save the new order: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        status: 'danger',
+        timeout: 5000,
+      });
+      for (const [queryKey, data] of context ?? []) {
+        queryClient.setQueryData(queryKey, data);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap', 'features'] });
     },
   });

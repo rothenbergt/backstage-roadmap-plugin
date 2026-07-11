@@ -211,6 +211,41 @@ describe('personas (real database)', () => {
     });
   });
 
+  describe('malformed payloads', () => {
+    it('rejects non-string comment text with 400 instead of crashing', async () => {
+      const feature = await suggest(ALICE, 'Comment validation target');
+      const res = await api('POST', '/comments', {
+        featureId: feature.id,
+        text: { nested: true },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects non-string edit fields with 400 instead of crashing', async () => {
+      const feature = await suggest(ALICE, 'Edit validation target');
+      const res = await api('PUT', `/features/${feature.id}`, { title: 123 });
+      expect(res.status).toBe(400);
+    });
+
+    it('caps vote batch endpoints to a bounded number of ids', async () => {
+      const ids = Array.from({ length: 251 }, (_, i) => `id-${i}`).join(',');
+      const counts = await api('GET', `/votes/counts?ids=${ids}`);
+      expect(counts.status).toBe(400);
+      const batch = await api('GET', `/votes/user/batch?ids=${ids}`);
+      expect(batch.status).toBe(400);
+    });
+
+    it('deduplicates ids in vote batch requests', async () => {
+      const feature = await suggest(ALICE, 'Dedupe target');
+      const res = await api(
+        'GET',
+        `/votes/counts?ids=${feature.id},${feature.id}`,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ [feature.id]: 0 });
+    });
+  });
+
   describe('admin', () => {
     it("can move anyone's feature through the board", async () => {
       const feature = await suggest(ALICE, 'Admin will plan this');

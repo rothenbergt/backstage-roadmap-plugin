@@ -313,7 +313,7 @@ describe('HTTP contract (gitlab mode, fake GitLab API)', () => {
     const comment = await commentRes.json();
     expect(comment.featureId).toBe(created.id);
     expect(comment.text).toBe('Nice');
-    expect(comment.author).toBe('admin');
+    expect(comment.author).toBe('user:default/admin');
     expect(comment.createdAt).toMatch(ISO_UTC);
 
     // Listing comments must exclude the hidden vote marker note

@@ -44,7 +44,7 @@ export interface RoadmapDatasource {
    * @param comment - The comment to add
    * @returns The created comment
    * @throws NotFoundError - When the referenced feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   addComment(comment: NewComment): Promise<Comment>;
 
@@ -54,7 +54,7 @@ export interface RoadmapDatasource {
    * @param featureId - The ID of the feature
    * @returns Array of comments
    * @throws NotFoundError - When the feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   getCommentsByFeatureId(featureId: string): Promise<Comment[]>;
 
@@ -63,7 +63,7 @@ export interface RoadmapDatasource {
    *
    * @param feature - The feature to add
    * @returns The created feature
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   addFeature(feature: NewFeature & { author: string }): Promise<Feature>;
 
@@ -71,7 +71,7 @@ export interface RoadmapDatasource {
    * Get all features
    *
    * @returns Array of all features
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   getAllFeatures(): Promise<Feature[]>;
 
@@ -81,7 +81,7 @@ export interface RoadmapDatasource {
    * @param id - The ID of the feature
    * @returns The feature
    * @throws NotFoundError - When the feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   getFeatureById(id: string): Promise<Feature>;
 
@@ -92,7 +92,7 @@ export interface RoadmapDatasource {
    * @param status - The new status
    * @returns The updated feature
    * @throws NotFoundError - When the feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   updateFeatureStatus(id: string, status: FeatureStatus): Promise<Feature>;
 
@@ -103,7 +103,7 @@ export interface RoadmapDatasource {
    * @param voter - The user voting
    * @returns Object with voteAdded (true if added, false if removed) and updated voteCount
    * @throws NotFoundError - When the feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   toggleVote(
     featureId: string,
@@ -116,7 +116,7 @@ export interface RoadmapDatasource {
    * @param featureId - The ID of the feature
    * @returns The number of votes
    * @throws NotFoundError - When the feature does not exist
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   getVoteCount(featureId: string): Promise<number>;
 
@@ -125,7 +125,7 @@ export interface RoadmapDatasource {
    *
    * @param featureIds - Array of feature IDs
    * @returns Object mapping feature IDs to vote counts
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   getVoteCounts(featureIds: string[]): Promise<Record<string, number>>;
 
@@ -135,7 +135,7 @@ export interface RoadmapDatasource {
    * @param featureId - The ID of the feature
    * @param voter - The user
    * @returns Boolean indicating if the user has voted
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   hasVoted(featureId: string, voter: string): Promise<boolean>;
 
@@ -145,7 +145,7 @@ export interface RoadmapDatasource {
    * @param featureIds - Array of feature IDs
    * @param voter - The user
    * @returns Object mapping feature IDs to boolean (has voted)
-   * @throws ConflictError - When the datasource operation fails
+   * @throws Error - When the datasource operation fails unexpectedly
    */
   hasVotedBatch(
     featureIds: string[],

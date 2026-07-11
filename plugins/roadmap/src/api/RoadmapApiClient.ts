@@ -108,6 +108,21 @@ export interface RoadmapApi {
 }
 
 /**
+ * The backend caps batch vote endpoints at 250 ids per request, so larger
+ * boards split their lookups into chunks and merge the results. Chunking here
+ * also keeps the query string well below URL length limits.
+ */
+const BATCH_CHUNK_SIZE = 250;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/**
  * API Client implementation for the Roadmap plugin
  */
 export class RoadmapApiClient implements RoadmapApi {
@@ -155,7 +170,16 @@ export class RoadmapApiClient implements RoadmapApi {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const rawBody = await response.text();
+      // The backend sends Backstage's standard error envelope, so pull out
+      // the human readable message instead of showing serialized JSON
+      let errorText = rawBody;
+      try {
+        const parsed = JSON.parse(rawBody);
+        errorText = parsed?.error?.message ?? rawBody;
+      } catch {
+        // Not JSON, keep the raw text
+      }
 
       // Map HTTP status codes to appropriate Backstage errors
       switch (response.status) {
@@ -269,8 +293,17 @@ export class RoadmapApiClient implements RoadmapApi {
   }
 
   async getVoteCounts(featureIds: string[]): Promise<Record<string, number>> {
-    const idsParam = featureIds.join(',');
-    return this.fetch<Record<string, number>>(`/votes/counts?ids=${idsParam}`);
+    if (featureIds.length === 0) {
+      return {};
+    }
+    const results = await Promise.all(
+      chunk(featureIds, BATCH_CHUNK_SIZE).map(ids =>
+        this.fetch<Record<string, number>>(
+          `/votes/counts?ids=${ids.join(',')}`,
+        ),
+      ),
+    );
+    return Object.assign({}, ...results);
   }
 
   async hasVoted(featureId: string): Promise<boolean> {
@@ -281,10 +314,14 @@ export class RoadmapApiClient implements RoadmapApi {
     if (featureIds.length === 0) {
       return {};
     }
-    const idsParam = featureIds.join(',');
-    return this.fetch<Record<string, boolean>>(
-      `/votes/user/batch?ids=${idsParam}`,
+    const results = await Promise.all(
+      chunk(featureIds, BATCH_CHUNK_SIZE).map(ids =>
+        this.fetch<Record<string, boolean>>(
+          `/votes/user/batch?ids=${ids.join(',')}`,
+        ),
+      ),
     );
+    return Object.assign({}, ...results);
   }
 
   async isRoadmapAdmin(): Promise<boolean> {

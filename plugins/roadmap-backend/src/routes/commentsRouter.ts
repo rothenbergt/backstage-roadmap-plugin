@@ -6,7 +6,11 @@ import { PermissionService } from '../services/PermissionService';
 import { RoadmapNotificationService } from '../services/RoadmapNotificationService';
 import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { getAdminUsers } from '../config';
-import { InputError, NotAllowedError } from '@backstage/errors';
+import {
+  InputError,
+  NotAllowedError,
+  NotImplementedError,
+} from '@backstage/errors';
 
 /**
  * Router for comment-related endpoints
@@ -82,7 +86,7 @@ export function commentsRouter(options: RouterOptions): express.Router {
   router.delete('/:commentId', async (req, res, next) => {
     try {
       if (datasource !== 'database') {
-        throw new NotAllowedError(
+        throw new NotImplementedError(
           'This operation is not supported for the GitLab roadmap datasource',
         );
       }

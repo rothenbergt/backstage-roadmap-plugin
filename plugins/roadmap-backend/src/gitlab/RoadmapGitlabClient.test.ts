@@ -4,11 +4,7 @@ import { setupServer } from 'msw/node';
 import { RoadmapGitlabClient } from './RoadmapGitlabClient';
 import { FeatureStatus } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { CacheService } from '@backstage/backend-plugin-api';
-import {
-  NotFoundError,
-  ConflictError,
-  NotAllowedError,
-} from '@backstage/errors';
+import { NotFoundError, ServiceUnavailableError } from '@backstage/errors';
 
 const BASE_URL = 'https://gitlab.example.com/api/v4';
 const PROJECT_ID = '123';
@@ -132,7 +128,16 @@ describe('RoadmapGitlabClient', () => {
     it('creates a GitLab issue with roadmap labels', async () => {
       const client = createClient();
 
-      server.use(http.post(issuesUrl, () => HttpResponse.json(makeIssue())));
+      let postedDescription: string | undefined;
+      server.use(
+        http.post(issuesUrl, async ({ request }) => {
+          const body = (await request.json()) as Record<string, any>;
+          postedDescription = body.description;
+          return HttpResponse.json(
+            makeIssue({ description: body.description }),
+          );
+        }),
+      );
 
       const feature = await client.addFeature({
         title: 'Test Feature',
@@ -143,6 +148,13 @@ describe('RoadmapGitlabClient', () => {
       expect(feature.id).toBe('1');
       expect(feature.title).toBe('Test Feature');
       expect(feature.status).toBe(FeatureStatus.Suggested);
+      // The Backstage author rides along in a hidden tag because the GitLab
+      // issue author is just the API token owner
+      expect(postedDescription).toBe(
+        '<!-- backstage-author:user:default/jdoe -->\nA test feature',
+      );
+      expect(feature.author).toBe('user:default/jdoe');
+      expect(feature.description).toBe('A test feature');
     });
   });
 
@@ -249,6 +261,9 @@ describe('RoadmapGitlabClient', () => {
 
       server.use(
         http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
+        ),
         http.put(issueUrl(1), async ({ request }) => {
           const body = (await request.json()) as Record<string, any>;
           updatedLabels = body.labels;
@@ -266,6 +281,38 @@ describe('RoadmapGitlabClient', () => {
       expect(feature.status).toBe(FeatureStatus.Planned);
       expect(updatedLabels).toContain('roadmap::Planned');
       expect(updatedLabels).not.toContain('roadmap::Suggested');
+    });
+
+    it('reports the marker-based vote count, not GitLab upvotes', async () => {
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
+
+      server.use(
+        http.get(issueUrl(1), () => HttpResponse.json(makeIssue())),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [
+              makeNote({ id: 1, body: '<!-- vote:alice -->' }),
+              makeNote({ id: 2, body: '<!-- vote:bob -->' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+        http.put(issueUrl(1), () =>
+          // GitLab's native upvotes stays 0 while the markers are the source of truth
+          HttpResponse.json(
+            makeIssue({ labels: ['roadmap', 'roadmap::Planned'], upvotes: 0 }),
+          ),
+        ),
+      );
+
+      const feature = await client.updateFeatureStatus(
+        '1',
+        FeatureStatus.Planned,
+      );
+
+      expect(feature.votes).toBe(2);
     });
   });
 
@@ -290,8 +337,8 @@ describe('RoadmapGitlabClient', () => {
         author: 'user:default/jdoe',
       });
 
-      expect(postedBody).toBe('<!-- author:jdoe -->\nGreat idea!');
-      expect(comment.author).toBe('jdoe');
+      expect(postedBody).toBe('<!-- author:user:default/jdoe -->\nGreat idea!');
+      expect(comment.author).toBe('user:default/jdoe');
       expect(comment.text).toBe('Great idea!');
     });
 
@@ -373,7 +420,37 @@ describe('RoadmapGitlabClient', () => {
 
       expect(result.voteAdded).toBe(true);
       expect(result.voteCount).toBe(1);
-      expect(postedBody).toBe('<!-- vote:jdoe -->');
+      expect(postedBody).toBe('<!-- vote:user:default/jdoe -->');
+    });
+
+    it('removes legacy username-only markers and duplicates on unvote', async () => {
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
+      const deletedNoteIds: string[] = [];
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [
+              // A legacy marker plus a duplicate full-ref marker from a
+              // concurrent toggle
+              makeNote({ id: 300, body: '<!-- vote:jdoe -->' }),
+              makeNote({ id: 301, body: '<!-- vote:user:default/jdoe -->' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+        http.delete(`${notesUrl(1)}/:noteId`, ({ params }) => {
+          deletedNoteIds.push(params.noteId as string);
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      const result = await client.toggleVote('1', 'user:default/jdoe');
+
+      expect(result.voteAdded).toBe(false);
+      expect(deletedNoteIds.sort()).toEqual(['300', '301']);
     });
 
     it('removes a vote when user has already voted', async () => {
@@ -402,7 +479,9 @@ describe('RoadmapGitlabClient', () => {
       expect(deletedPath).toBe('300');
     });
 
-    it('invalidates cache before toggling and re-caches after', async () => {
+    it('invalidates the vote cache instead of caching its own snapshot', async () => {
+      // Caching the locally modified map would serve a wrong count if a
+      // concurrent toggle added markers this request never saw.
       const cache = createMockCache();
       seedIidCache(cache, 1);
       const client = createClient(cache);
@@ -420,11 +499,12 @@ describe('RoadmapGitlabClient', () => {
       await client.toggleVote('1', 'user:default/jdoe');
 
       expect(cache.delete).toHaveBeenCalledWith('roadmap:votes:1');
-      expect(cache.set).toHaveBeenCalledWith(
+      expect(cache.set).not.toHaveBeenCalledWith(
         'roadmap:votes:1',
-        { jdoe: 0 },
-        { ttl: 30000 },
+        expect.anything(),
+        expect.anything(),
       );
+      expect(cache.store.has('roadmap:votes:1')).toBe(false);
     });
   });
 
@@ -463,7 +543,7 @@ describe('RoadmapGitlabClient', () => {
       expect(count).toBe(2);
       expect(cache.set).toHaveBeenCalledWith(
         'roadmap:votes:1',
-        { alice: 10, bob: 11 },
+        { alice: [10], bob: [11] },
         { ttl: 30000 },
       );
     });
@@ -490,6 +570,41 @@ describe('RoadmapGitlabClient', () => {
       const result = await client.hasVoted('1', 'user:default/jdoe');
 
       expect(result).toBe(false);
+    });
+
+    it('matches full entity ref markers', async () => {
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      cache.store.set('roadmap:votes:1', { 'user:default/jdoe': [10] });
+      const client = createClient(cache);
+
+      expect(await client.hasVoted('1', 'user:default/jdoe')).toBe(true);
+      // Same name in another namespace is a different person
+      expect(await client.hasVoted('1', 'user:contractors/jdoe')).toBe(false);
+    });
+
+    it('does not fold same-name markers from different namespaces', async () => {
+      const cache = createMockCache();
+      seedIidCache(cache, 1);
+      const client = createClient(cache);
+
+      server.use(
+        http.get(notesUrl(1), () =>
+          HttpResponse.json(
+            [
+              makeNote({ id: 10, body: '<!-- vote:user:default/jdoe -->' }),
+              makeNote({ id: 11, body: '<!-- vote:user:contractors/jdoe -->' }),
+              // With two same-name refs this legacy marker stays its own voter
+              makeNote({ id: 12, body: '<!-- vote:jdoe -->' }),
+            ],
+            { headers: { 'x-next-page': '' } },
+          ),
+        ),
+      );
+
+      expect(await client.getVoteCount('1')).toBe(3);
+      expect(await client.hasVoted('1', 'user:default/jdoe')).toBe(true);
+      expect(await client.hasVoted('1', 'user:contractors/jdoe')).toBe(true);
     });
   });
 
@@ -527,7 +642,7 @@ describe('RoadmapGitlabClient', () => {
   });
 
   describe('API error handling', () => {
-    it('throws NotAllowedError on 401', async () => {
+    it('throws ServiceUnavailableError on 401', async () => {
       const cache = createMockCache();
       seedIidCache(cache, 1);
       const client = createClient(cache);
@@ -537,10 +652,12 @@ describe('RoadmapGitlabClient', () => {
           () => new HttpResponse('Unauthorized', { status: 401 }),
         ),
       );
-      await expect(client.getFeatureById('1')).rejects.toThrow(NotAllowedError);
+      await expect(client.getFeatureById('1')).rejects.toThrow(
+        ServiceUnavailableError,
+      );
     });
 
-    it('throws ConflictError on non-404/non-401 errors', async () => {
+    it('throws ServiceUnavailableError on non-404/non-401 errors', async () => {
       const cache = createMockCache();
       seedIidCache(cache, 1);
       const client = createClient(cache);
@@ -550,7 +667,9 @@ describe('RoadmapGitlabClient', () => {
           () => new HttpResponse('Server Error', { status: 500 }),
         ),
       );
-      await expect(client.getFeatureById('1')).rejects.toThrow(ConflictError);
+      await expect(client.getFeatureById('1')).rejects.toThrow(
+        ServiceUnavailableError,
+      );
     });
   });
 
@@ -645,6 +764,9 @@ describe('RoadmapGitlabClient', () => {
       server.use(
         http.get(issueUrl(1), () =>
           HttpResponse.json(makeIssue({ labels: [] })),
+        ),
+        http.get(notesUrl(1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
         ),
         http.put(issueUrl(1), async ({ request }) => {
           const body = (await request.json()) as Record<string, any>;
@@ -830,7 +952,7 @@ describe('RoadmapGitlabClient', () => {
       );
     });
 
-    it('throws ConflictError when creating feature without defaultProjectId', async () => {
+    it('throws ServiceUnavailableError when creating feature without defaultProjectId', async () => {
       const client = createGroupClient(undefined, {
         defaultProjectId: null,
       });
@@ -841,7 +963,7 @@ describe('RoadmapGitlabClient', () => {
           description: 'desc',
           author: 'user:default/jdoe',
         }),
-      ).rejects.toThrow(ConflictError);
+      ).rejects.toThrow(ServiceUnavailableError);
     });
 
     it('caches project_id when fetching single issue by id', async () => {
@@ -883,7 +1005,7 @@ describe('RoadmapGitlabClient', () => {
         author: 'user:default/alice',
       });
       expect(comment.text).toBe('group comment');
-      expect(comment.author).toBe('alice');
+      expect(comment.author).toBe('user:default/alice');
     });
 
     it('toggles vote using cached project_id', async () => {
@@ -914,6 +1036,9 @@ describe('RoadmapGitlabClient', () => {
       server.use(
         http.get(groupProjectIssueUrl(789, 1), () =>
           HttpResponse.json(makeIssue({ project_id: 789 })),
+        ),
+        http.get(groupProjectNotesUrl(789, 1), () =>
+          HttpResponse.json([], { headers: { 'x-next-page': '' } }),
         ),
         http.put(groupProjectIssueUrl(789, 1), () =>
           HttpResponse.json(

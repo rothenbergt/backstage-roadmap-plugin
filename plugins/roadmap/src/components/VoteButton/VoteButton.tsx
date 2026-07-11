@@ -85,7 +85,7 @@ export const VoteButton = ({
   className,
 }: VoteButtonProps) => {
   const classes = useStyles();
-  const { mutate: toggleVote } = useToggleVote();
+  const { mutate: toggleVote, isPending } = useToggleVote();
 
   const handleClick = (event: MouseEvent) => {
     // Prevent the click from propagating to parent components
@@ -102,6 +102,9 @@ export const VoteButton = ({
         onClick={handleClick}
         aria-label={hasVoted ? 'Remove vote' : 'Add vote'}
         aria-pressed={hasVoted}
+        // Ignore clicks while a toggle is in flight so a double click cannot
+        // race two overlapping requests
+        disabled={isPending}
         disableRipple
       >
         <KeyboardArrowUpIcon />

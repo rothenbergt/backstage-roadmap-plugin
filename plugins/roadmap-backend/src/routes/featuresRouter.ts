@@ -8,7 +8,11 @@ import { RoadmapNotificationService } from '../services/RoadmapNotificationServi
 import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { getAdminUsers } from '../config';
 
-import { NotAllowedError, InputError } from '@backstage/errors';
+import {
+  NotAllowedError,
+  NotImplementedError,
+  InputError,
+} from '@backstage/errors';
 /**
  * Router for feature-related endpoints
  */
@@ -97,7 +101,7 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.put('/reorder', async (req, res, next) => {
     try {
       if (datasource !== 'database') {
-        throw new NotAllowedError(
+        throw new NotImplementedError(
           'This operation is not supported for the GitLab roadmap datasource',
         );
       }
@@ -173,19 +177,25 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.put('/:id', async (req, res, next) => {
     try {
       if (datasource !== 'database') {
-        throw new NotAllowedError(
+        throw new NotImplementedError(
           'This operation is not supported for the GitLab roadmap datasource',
         );
       }
       const { id } = req.params;
       const { title, description } = req.body as {
-        title?: string;
-        description?: string;
+        title?: unknown;
+        description?: unknown;
       };
       if (title === undefined && description === undefined) {
         throw new InputError(
           'At least one of title or description is required',
         );
+      }
+      if (title !== undefined && typeof title !== 'string') {
+        throw new InputError('title must be a string');
+      }
+      if (description !== undefined && typeof description !== 'string') {
+        throw new InputError('description must be a string');
       }
 
       const username = await permissionService.getUsername(req);
@@ -208,7 +218,7 @@ export function featuresRouter(options: RouterOptions): express.Router {
   router.delete('/:id', async (req, res, next) => {
     try {
       if (datasource !== 'database') {
-        throw new NotAllowedError(
+        throw new NotImplementedError(
           'This operation is not supported for the GitLab roadmap datasource',
         );
       }
