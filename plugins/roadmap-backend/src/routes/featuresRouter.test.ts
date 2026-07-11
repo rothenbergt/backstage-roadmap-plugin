@@ -69,8 +69,13 @@ function createApp(overrides?: Partial<RouterOptions>): express.Express {
   app.use(express.json());
   app.use(featuresRouter(options));
   app.use(((err: any, _req: any, res: any, _next: any) => {
-    const status =
-      err.statusCode ?? (err.name === 'NotAllowedError' ? 403 : 500);
+    const statusByName: Record<string, number> = {
+      NotAllowedError: 403,
+      InputError: 400,
+      NotFoundError: 404,
+      NotImplementedError: 501,
+    };
+    const status = err.statusCode ?? statusByName[err.name] ?? 500;
     res
       .status(status)
       .json({ error: { name: err.name, message: err.message } });
@@ -186,9 +191,21 @@ describe('featuresRouter', () => {
       expect(response.status).toBe(201);
     });
 
-    it('rejects when no permissions service and user is not admin', async () => {
+    it('allows any authenticated user when the permission framework is disabled', async () => {
+      const mockDb = createMockDb();
+      mockDb.addFeature.mockResolvedValue({
+        id: '3',
+        title: 'Test',
+        description: 'Test desc',
+        status: FeatureStatus.Suggested,
+        votes: 0,
+        author: 'user:default/testuser',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      });
+
       ({ server, baseUrl } = await startServer(
-        createApp({ permissions: undefined }),
+        createApp({ permissions: undefined, db: mockDb }),
       ));
 
       const response = await fetch(baseUrl, {
@@ -197,7 +214,47 @@ describe('featuresRouter', () => {
         body: JSON.stringify({ title: 'Test', description: 'Test desc' }),
       });
 
+      expect(response.status).toBe(201);
+    });
+
+    it('still denies admin actions to non-admins when the framework is disabled', async () => {
+      ({ server, baseUrl } = await startServer(
+        createApp({ permissions: undefined }),
+      ));
+
+      const response = await fetch(`${baseUrl}/1/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: FeatureStatus.Planned }),
+      });
+
       expect(response.status).toBe(403);
+    });
+  });
+
+  describe('PUT /:id (edit details) input validation', () => {
+    it('rejects non-string title with 400 instead of crashing', async () => {
+      ({ server, baseUrl } = await startServer(createApp()));
+
+      const response = await fetch(`${baseUrl}/1`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 123 }),
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects non-string description with 400 instead of crashing', async () => {
+      ({ server, baseUrl } = await startServer(createApp()));
+
+      const response = await fetch(`${baseUrl}/1`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: { nested: true } }),
+      });
+
+      expect(response.status).toBe(400);
     });
   });
 
@@ -245,7 +302,7 @@ describe('featuresRouter', () => {
       });
     }
 
-    it('returns 403 for PUT /reorder', async () => {
+    it('returns 501 for PUT /reorder', async () => {
       ({ server, baseUrl } = await startServer(createGitlabApp()));
 
       const response = await fetch(`${baseUrl}/reorder`, {
@@ -256,10 +313,10 @@ describe('featuresRouter', () => {
           orderedIds: ['1'],
         }),
       });
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(501);
     });
 
-    it('returns 403 for PUT /:id (title/description)', async () => {
+    it('returns 501 for PUT /:id (title/description)', async () => {
       ({ server, baseUrl } = await startServer(createGitlabApp()));
 
       const response = await fetch(`${baseUrl}/1`, {
@@ -267,14 +324,14 @@ describe('featuresRouter', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: 'x' }),
       });
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(501);
     });
 
-    it('returns 403 for DELETE /:id', async () => {
+    it('returns 501 for DELETE /:id', async () => {
       ({ server, baseUrl } = await startServer(createGitlabApp()));
 
       const response = await fetch(`${baseUrl}/1`, { method: 'DELETE' });
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(501);
     });
   });
 

@@ -93,6 +93,11 @@ export class PermissionService implements PermissionServiceInterface {
   }
 
   async canCreateFeature(req: Request, username: string): Promise<boolean> {
+    // Without the permission framework, any authenticated user can suggest
+    // features, while the adminUsers list only gates admin actions.
+    if (!this.options.permissions) {
+      return true;
+    }
     return this.checkPermission(req, username, roadmapCreatePermission);
   }
 }

@@ -8,7 +8,7 @@ import {
 } from '@rothenbergt/backstage-plugin-roadmap-common';
 import { RoadmapDatasource } from '../types';
 import { LoggerService, DatabaseService } from '@backstage/backend-plugin-api';
-import { NotFoundError, ConflictError } from '@backstage/errors';
+import { NotFoundError } from '@backstage/errors';
 import { resolvePackagePath } from '@backstage/backend-plugin-api';
 import { FeaturesStore, CommentsStore, VotesStore } from './stores';
 
@@ -20,9 +20,9 @@ const migrationsDir = resolvePackagePath(
 /**
  * Knex-backed implementation of the RoadmapDatasource interface.
  *
- * Table access lives in the per-table stores (features/comments/votes);
- * this class aggregates them and wraps unexpected store failures in
- * ConflictError while letting NotFoundError pass through.
+ * Table access lives in the per-table stores (features/comments/votes).
+ * This class aggregates them and wraps unexpected store failures in a
+ * plain Error (surfaced as 500) while letting NotFoundError pass through.
  */
 export class RoadmapDatabaseClient implements RoadmapDatasource {
   static async create(options: {
@@ -56,7 +56,7 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
     this.logger = logger;
   }
 
-  /** Logs and normalizes store errors: NotFound passes through, anything else becomes ConflictError. */
+  /** Logs and normalizes store errors. NotFound passes through while anything else surfaces as an internal error. */
   private async run<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
@@ -67,7 +67,9 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
       this.logger.error(`Error during ${operation}`, {
         error: String(error),
       });
-      throw new ConflictError(`Failed to ${operation}`, error as Error);
+      // An unexpected database failure is a server-side problem, so it
+      // surfaces as a 500 instead of a misleading client error code
+      throw new Error(`Failed to ${operation}`, { cause: error });
     }
   }
 
@@ -142,6 +144,9 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
   }
 
   async getVoteCount(featureId: string): Promise<number> {
+    // Single-feature queries 404 on unknown ids in both datasources, while
+    // batch queries stay lenient and simply omit unknown ids
+    await this.requireFeatureExists(featureId);
     const counts = await this.getVoteCounts([featureId]);
     return counts[featureId] || 0;
   }
@@ -151,10 +156,20 @@ export class RoadmapDatabaseClient implements RoadmapDatasource {
   }
 
   async hasVoted(featureId: string, voter: string): Promise<boolean> {
+    await this.requireFeatureExists(featureId);
     return this.run(
       `check if user ${voter} has voted on feature ${featureId}`,
       () => this.votes.hasVoted(featureId, voter),
     );
+  }
+
+  private async requireFeatureExists(featureId: string): Promise<void> {
+    const exists = await this.run(`check feature ${featureId} exists`, () =>
+      this.features.exists(featureId),
+    );
+    if (!exists) {
+      throw new NotFoundError(`Feature with id ${featureId} not found`);
+    }
   }
 
   async hasVotedBatch(

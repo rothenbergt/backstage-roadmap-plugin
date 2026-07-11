@@ -5,7 +5,10 @@ import { RoadmapBoard } from './features/board/RoadmapBoard';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
+      // Signals invalidate caches instantly when installed, and window focus
+      // refetching covers apps without them so an open board still catches up
+      // on other users' changes.
+      refetchOnWindowFocus: true,
       retry: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
     },

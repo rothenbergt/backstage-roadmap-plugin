@@ -56,17 +56,33 @@ export class FeaturesStore {
   }
 
   async updateStatus(id: string, status: FeatureStatus): Promise<Feature> {
-    const [row] = await this.knex<FeatureRow>('features')
-      .where({ id })
-      .update({
-        status: statusToDb(status),
+    return this.knex.transaction(async trx => {
+      const current = await trx<FeatureRow>('features').where({ id }).first();
+      if (!current) {
+        throw new NotFoundError(`Feature with id ${id} not found`);
+      }
+      const dbStatus = statusToDb(status);
+      const patch: Record<string, unknown> = {
+        status: dbStatus,
         updated_at: this.knex.fn.now(),
-      })
-      .returning('*');
-    if (!row) {
-      throw new NotFoundError(`Feature with id ${id} not found`);
-    }
-    return mapFeatureRow(row);
+      };
+      // Positions only mean something within a column, so a move lands the
+      // feature at the end of its destination instead of keeping a position
+      // that belonged to the previous column
+      if (current.status !== dbStatus) {
+        const maxRow = await trx('features')
+          .where({ status: dbStatus })
+          .max('board_position as maxp')
+          .first();
+        patch.board_position =
+          Number((maxRow as { maxp?: string | number })?.maxp ?? 0) + 1;
+      }
+      const [row] = await trx<FeatureRow>('features')
+        .where({ id })
+        .update(patch)
+        .returning('*');
+      return mapFeatureRow(row);
+    });
   }
 
   async updateDetails(
@@ -108,6 +124,24 @@ export class FeaturesStore {
             `Feature ${orderedIds[i]} not found or not in status ${status}`,
           );
         }
+      }
+
+      // The client may only see a filtered view of the column (retention
+      // hides older items), so features it omitted are re-positioned after
+      // the submitted ones in their existing relative order to avoid
+      // position collisions
+      const omitted = await trx<FeatureRow>('features')
+        .where({ status: statusToDb(status) })
+        .whereNotIn('id', orderedIds)
+        .orderBy([
+          { column: 'board_position', order: 'asc' },
+          { column: 'created_at', order: 'desc' },
+        ])
+        .select('id');
+      for (let i = 0; i < omitted.length; i += 1) {
+        await trx('features')
+          .where({ id: omitted[i].id })
+          .update({ board_position: orderedIds.length + i });
       }
     });
   }

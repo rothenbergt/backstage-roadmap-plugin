@@ -241,6 +241,14 @@ By default, the plugin stores data in a plugin database. You can optionally use 
 - Votes and comments are stored as issue notes
 - All existing plugin functionality (voting, commenting, status management) works seamlessly through the GitLab API
 
+### Scope and Limits
+
+GitLab mode treats issues as the source of truth, which comes with a few deliberate boundaries:
+
+- Features, votes, and comments created through the plugin carry the real Backstage user (embedded in hidden tags), so attribution is exact. Issues created directly in GitLab show their GitLab username as a best-effort author instead.
+- Vote counts are derived from hidden marker notes, so loading the board enumerates notes per issue (softened by a short cache). This works well for modest roadmaps; if you expect many hundreds of features with heavy voting, the database datasource is the better fit.
+- Vote tallies are eventually consistent under concurrent voting. Duplicate markers from simultaneous toggles are cleaned up on the next unvote.
+
 ### Project Mode
 
 Set the datasource to `gitlab` and provide your GitLab connection details in `app-config.yaml`:

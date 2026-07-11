@@ -7,6 +7,26 @@ import { RoadmapEventPublisher } from '../services/RoadmapEventPublisher';
 import { InputError } from '@backstage/errors';
 
 /**
+ * Upper bound on ids per batch request. The board fetches votes for the
+ * features it renders, so this is generous for real clients while keeping a
+ * single request from fanning out into unbounded database/GitLab work.
+ */
+const MAX_BATCH_IDS = 250;
+
+function parseBatchIds(idsParam: unknown): string[] {
+  if (!idsParam || typeof idsParam !== 'string') {
+    return [];
+  }
+  const ids = [...new Set(idsParam.split(',').filter(Boolean))];
+  if (ids.length > MAX_BATCH_IDS) {
+    throw new InputError(
+      `Too many ids: at most ${MAX_BATCH_IDS} are allowed per request`,
+    );
+  }
+  return ids;
+}
+
+/**
  * Router for vote-related endpoints
  */
 export function votesRouter(options: RouterOptions): express.Router {
@@ -25,15 +45,7 @@ export function votesRouter(options: RouterOptions): express.Router {
   // Get vote counts for multiple features
   router.get('/counts', async (req, res, next) => {
     try {
-      const idsParam = req.query.ids;
-
-      // Handle empty parameter case gracefully
-      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
-        res.json({});
-        return;
-      }
-
-      const featureIds = idsParam.split(',').filter(Boolean);
+      const featureIds = parseBatchIds(req.query.ids);
 
       if (featureIds.length === 0) {
         res.json({});
@@ -50,15 +62,7 @@ export function votesRouter(options: RouterOptions): express.Router {
   // Check if user has voted on multiple features (batch)
   router.get('/user/batch', async (req, res, next) => {
     try {
-      const idsParam = req.query.ids;
-
-      // Handle empty parameter case gracefully
-      if (!idsParam || typeof idsParam !== 'string' || idsParam === '') {
-        res.json({});
-        return;
-      }
-
-      const featureIds = idsParam.split(',').filter(Boolean);
+      const featureIds = parseBatchIds(req.query.ids);
 
       if (featureIds.length === 0) {
         res.json({});

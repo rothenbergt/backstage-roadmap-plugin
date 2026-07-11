@@ -9,7 +9,7 @@ interface FeatureWithVote extends Feature {
 }
 
 interface MutationContext {
-  previousFeatures?: FeatureWithVote[];
+  previousFeatures?: Array<[readonly unknown[], FeatureWithVote[] | undefined]>;
   previousFeature?: FeatureWithVote;
 }
 
@@ -31,22 +31,22 @@ export const useToggleVote = () => {
         queryKey: ['roadmap', 'feature', featureId],
       });
 
-      // Get snapshot of current data
-      const previousFeatures = queryClient.getQueryData<FeatureWithVote[]>([
-        'roadmap',
-        'features',
-      ]);
+      // Snapshot every features list variant (the board keys them with
+      // options like includeBeyondRetention, so match by prefix)
+      const previousFeatures = queryClient.getQueriesData<FeatureWithVote[]>({
+        queryKey: ['roadmap', 'features'],
+      });
       const previousFeature = queryClient.getQueryData<FeatureWithVote>([
         'roadmap',
         'feature',
         featureId,
       ]);
 
-      // Optimistically update the features list
-      queryClient.setQueryData<FeatureWithVote[]>(
-        ['roadmap', 'features'],
+      // Optimistically update all cached features lists
+      queryClient.setQueriesData<FeatureWithVote[]>(
+        { queryKey: ['roadmap', 'features'] },
         old => {
-          if (!old) return [];
+          if (!old) return old;
           return old.map(feature =>
             feature.id === featureId
               ? {
@@ -94,10 +94,9 @@ export const useToggleVote = () => {
         timeout: 5000,
       });
       if (context?.previousFeatures) {
-        queryClient.setQueryData(
-          ['roadmap', 'features'],
-          context.previousFeatures,
-        );
+        for (const [queryKey, data] of context.previousFeatures) {
+          queryClient.setQueryData(queryKey, data);
+        }
       }
       if (context?.previousFeature) {
         queryClient.setQueryData(
