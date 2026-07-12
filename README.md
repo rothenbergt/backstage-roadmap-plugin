@@ -54,11 +54,11 @@ With the optional collator module installed, roadmap features show up in Backsta
 - 🔍 (Optional) Backstage search integration via a collator module
 - 🔗 Deep links: `/roadmap?feature=<id>` opens a feature directly
 - ⚡ Live board updates via Backstage signals (votes and status changes appear without a refresh)
-- 🔌 Events for integrators: every change is published to the Backstage events bus
+- 🔌 Events for integrators, with every change published to the Backstage events bus
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
 - 👯 Duplicate detection in the suggest dialog, which surfaces similar existing suggestions while you type
-- 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
+- 🦊 (Optional) GitLab integration that uses GitLab issues as the datasource
 
 ## 🛠️ Installation
 
@@ -80,8 +80,8 @@ With the optional collator module installed, roadmap features show up in Backsta
 
 That's the whole core install. The shared types package (`@rothenbergt/backstage-plugin-roadmap-common`) comes along automatically as a dependency. Two optional add-ons unlock more:
 
-- **Search**: index roadmap features into Backstage global search with `@rothenbergt/backstage-plugin-search-backend-module-roadmap` (see [Search](#search) below).
-- **Live updates**: install the Backstage signals plugins and open boards refresh in real time (see [Live updates](#live-updates-signals) below).
+- **Search** indexes roadmap features into Backstage global search with `@rothenbergt/backstage-plugin-search-backend-module-roadmap` (see [Search](#search) below).
+- **Live updates** arrive once the Backstage signals plugins are installed, and open boards refresh in real time (see [Live updates](#live-updates-signals) below).
 
 ## 🖥️ Usage
 
@@ -99,10 +99,10 @@ After installation, navigate to the `/roadmap` route in your Backstage instance.
 
 The plugin defines two permissions:
 
-| Permission       | What it gates                                                               |
-| ---------------- | --------------------------------------------------------------------------- |
-| `roadmap.create` | The **Suggest Feature** button and the create-feature endpoint              |
-| `roadmap.admin`  | Admin actions: changing status, editing/deleting features, reordering, etc. |
+| Permission       | What it gates                                                                    |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `roadmap.create` | The **Suggest Feature** button and the create-feature endpoint                   |
+| `roadmap.admin`  | Admin actions such as changing status, editing/deleting features, and reordering |
 
 How they resolve depends on whether the Backstage permission framework is enabled (`permission.enabled` in `app-config.yaml`):
 
@@ -117,7 +117,7 @@ How they resolve depends on whether the Backstage permission framework is enable
 
 - **Framework enabled:** your permission policy decides. You must have `@backstage/plugin-permission-backend` **and a policy** installed (e.g. the allow-all policy module, or your own policy that allows `roadmap.create` / `roadmap.admin`).
 
-> ⚠️ **Gotcha:** with `permission.enabled: true` but no permission backend or a policy that denies by default, the Suggest Feature button is hidden for **everyone** — including users in `roadmap.adminUsers`. That list only short-circuits the roadmap backend's own checks; the frontend button goes through the permission framework.
+> ⚠️ **Gotcha:** with `permission.enabled: true` but no permission backend or a policy that denies by default, the Suggest Feature button is hidden for **everyone**, including users in `roadmap.adminUsers`. That list only short-circuits the roadmap backend's own checks, while the frontend button goes through the permission framework.
 
 ### Notifications
 
@@ -187,7 +187,7 @@ import { RoadmapSearchResultListItem } from '@rothenbergt/backstage-plugin-roadm
 
 ### Live updates (signals)
 
-If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes: new suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals; the board just falls back to regular refetching.
+If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes. New suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals because the board just falls back to regular refetching.
 
 ### Events (for integrators)
 
@@ -212,10 +212,10 @@ Add a list under `columns`. Each item supports:
 | Field             | Description                                                                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `status`          | One of: `Suggested`, `Planned`, `In Progress` (quote in YAML if needed), `Completed`, `Declined`. Unknown values are ignored.                          |
-| `title`           | Column heading shown on the board (optional; defaults to the status name).                                                                             |
+| `title`           | Column heading shown on the board (optional, defaults to the status name).                                                                             |
 | `visible`         | If `false`, that column is hidden on the board and features in that status are omitted from the default feature list (smaller API payloads). Optional. |
-| `retentionDays`   | Positive number: hide features older than this many days in the default list (**database** datasource only). Optional; omit for no retention.          |
-| `retentionAnchor` | `created` or `updated` (default `updated`): which timestamp retention uses.                                                                            |
+| `retentionDays`   | Positive number that hides features older than this many days in the default list (**database** datasource only). Optional, omit for no retention.     |
+| `retentionAnchor` | Chooses which timestamp retention uses, either `created` or `updated` (default `updated`).                                                             |
 
 **Defaults:** Every status has a column. **In Progress** is included but **`visible: false` by default**, so the board matches the classic four-column layout until you turn it on. Other statuses default to visible.
 
@@ -247,11 +247,11 @@ roadmap:
       visible: false
 ```
 
-With the **GitLab** datasource, column labels and visibility still apply to how lists are filtered and labeled; retention and “show beyond retention” remain **database-only** (see the [roadmap-backend README](plugins/roadmap-backend/README.md) for API details).
+With the **GitLab** datasource, column labels and visibility still apply to how lists are filtered and labeled, while retention and “show beyond retention” remain **database-only** (see the [roadmap-backend README](plugins/roadmap-backend/README.md) for API details).
 
 ## 🦊 (Optional) GitLab Integration
 
-By default, the plugin stores data in a plugin database. You can optionally use a GitLab project — or an entire GitLab group — as the backend datasource, where roadmap features are stored as GitLab issues.
+By default, the plugin stores data in a plugin database. You can optionally use a GitLab project or an entire GitLab group as the backend datasource, where roadmap features are stored as GitLab issues.
 
 ### How It Works
 
@@ -265,7 +265,7 @@ By default, the plugin stores data in a plugin database. You can optionally use 
 GitLab mode treats issues as the source of truth, which comes with a few deliberate boundaries:
 
 - Features, votes, and comments created through the plugin carry the real Backstage user (embedded in hidden tags), so attribution is exact. Issues created directly in GitLab show their GitLab username as a best-effort author instead.
-- Vote counts are derived from hidden marker notes, so loading the board enumerates notes per issue (softened by a short cache). This works well for modest roadmaps; if you expect many hundreds of features with heavy voting, the database datasource is the better fit.
+- Vote counts are derived from hidden marker notes, so loading the board enumerates notes per issue (softened by a short cache). This works well for modest roadmaps, but if you expect many hundreds of features with heavy voting, the database datasource is the better fit.
 - Vote tallies are eventually consistent under concurrent voting. Duplicate markers from simultaneous toggles are cleaned up on the next unvote.
 
 ### Project Mode
@@ -312,25 +312,25 @@ In group mode, the plugin queries issues at the group level and caches the proje
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions! Here's how to get started.
 
 ### Development Setup
 
 1. Fork and clone the repository
-2. Install dependencies: `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime; otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
-3. Start the dev environment: `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, an allow-all permission policy, plus the catalog, notifications, signals, and search backends so everything is testable locally)
+2. Install dependencies with `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime, otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
+3. Start the dev environment with `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, an allow-all permission policy, plus the catalog, notifications, signals, and search backends so everything is testable locally)
 
-   Testing notifications locally: you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
+   When testing notifications locally, you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
 
 4. Make your changes
-5. Run tests: `yarn test:all` (the database store tests also run against Postgres via [testcontainers](https://node.testcontainers.org/) when Docker is available; set `BACKSTAGE_TEST_DISABLE_DOCKER=1` to run sqlite-only. CI provides Postgres as a service container and runs both.)
-6. Run lint: `yarn lint:all`
+5. Run tests with `yarn test:all` (the database store tests also run against Postgres via [testcontainers](https://node.testcontainers.org/) when Docker is available. Set `BACKSTAGE_TEST_DISABLE_DOCKER=1` to run sqlite-only. CI provides Postgres as a service container and runs both.)
+6. Run lint with `yarn lint:all`
 
 **`jwa` resolutions:** `jws` v3 depends on `jwa` 1.x and `jws` v4 on `jwa` 2.x, so root `package.json` pins both majors separately. Replacing them with one version would break one of those stacks unless upstream upgrades.
 
 ### Creating a Changeset
 
-This project uses [Changesets](https://github.com/changesets/changesets) to manage versions and releases. When you make a change that affects users, you need to create a changeset:
+This project uses [Changesets](https://github.com/changesets/changesets) to manage versions and releases. When you make a change that affects users, you need to create a changeset.
 
 1. Run `yarn changeset`
 2. Select which packages are affected (use space to select, enter to confirm)
