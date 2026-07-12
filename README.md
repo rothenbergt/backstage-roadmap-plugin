@@ -33,7 +33,7 @@ While you type, the dialog surfaces similar existing suggestions so people can v
 
 ### Notifications
 
-Authors are notified when their suggestion changes status or receives a comment; admins hear about new suggestions. Each event has its own topic, so users can tune (or mute) them in their standard Backstage notification settings.
+Authors are notified when their suggestion changes status or receives a comment, and admins hear about new suggestions. Each event has its own topic, so users can tune or mute them in their standard Backstage notification settings.
 
 ![Notifications](./assets/Notifications.png)
 
@@ -57,7 +57,7 @@ With the optional collator module installed, roadmap features show up in Backsta
 - 🔌 Events for integrators: every change is published to the Backstage events bus
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
-- 👯 Duplicate detection: the suggest dialog surfaces similar existing suggestions while you type
+- 👯 Duplicate detection in the suggest dialog, which surfaces similar existing suggestions while you type
 - 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
 
 ## 🛠️ Installation
