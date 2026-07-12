@@ -65,8 +65,8 @@ With the optional collator module installed, roadmap features show up in Backsta
 1. Install the plugin in your Backstage instance:
 
    ```
-   yarn add @rothenbergt/backstage-plugin-roadmap-backend --cwd packages/backend
-   yarn add @rothenbergt/backstage-plugin-roadmap --cwd packages/app
+   yarn --cwd packages/backend add @rothenbergt/backstage-plugin-roadmap-backend
+   yarn --cwd packages/app add @rothenbergt/backstage-plugin-roadmap
    ```
 
 2. Add the plugin to your `packages/backend/src/index.ts`:
@@ -150,7 +150,7 @@ roadmap:
 Roadmap features can be indexed into Backstage global search with the optional collator module:
 
 ```
-yarn add @rothenbergt/backstage-plugin-search-backend-module-roadmap --cwd packages/backend
+yarn --cwd packages/backend add @rothenbergt/backstage-plugin-search-backend-module-roadmap
 ```
 
 ```typescript

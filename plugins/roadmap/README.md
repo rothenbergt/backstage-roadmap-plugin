@@ -13,7 +13,7 @@ The frontend for the [Backstage Roadmap Plugin](https://github.com/rothenbergt/b
 ## Installation
 
 ```
-yarn add @rothenbergt/backstage-plugin-roadmap --cwd packages/app
+yarn --cwd packages/app add @rothenbergt/backstage-plugin-roadmap
 ```
 
 The plugin uses the new Backstage [frontend system](https://backstage.io/docs/frontend-system/) and is discovered automatically. No wiring needed; visit `/roadmap` in your app.
