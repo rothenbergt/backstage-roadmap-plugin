@@ -8,7 +8,7 @@ takes you straight to that feature's details drawer on the roadmap board.
 ## Installation
 
 ```
-yarn add @rothenbergt/backstage-plugin-search-backend-module-roadmap --cwd packages/backend
+yarn --cwd packages/backend add @rothenbergt/backstage-plugin-search-backend-module-roadmap
 ```
 
 Add the module to your `packages/backend/src/index.ts`:
