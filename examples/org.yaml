@@ -24,3 +24,59 @@ metadata:
   name: roadmap-admin
 spec:
   memberOf: [guests]
+---
+# Demo users so seeded roadmap data (votes, comments, authors) resolves to
+# real catalog entities with display names.
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: mchen
+spec:
+  profile:
+    displayName: Maya Chen
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: dpatel
+spec:
+  profile:
+    displayName: Dev Patel
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: skowalski
+spec:
+  profile:
+    displayName: Sara Kowalski
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: jokafor
+spec:
+  profile:
+    displayName: James Okafor
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: lnguyen
+spec:
+  profile:
+    displayName: Linh Nguyen
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: rmartinez
+spec:
+  profile:
+    displayName: Rosa Martinez
+  memberOf: [guests]
