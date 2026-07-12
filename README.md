@@ -21,11 +21,29 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 
 ### Feature Details
 
+Voting, status management, and threaded comments in a details drawer.
+
 ![Feature Details Drawer](./assets/FeatureDetailsDrawer.png)
 
 ### Suggest New Feature
 
+While you type, the dialog surfaces similar existing suggestions so people can vote for an existing request instead of filing a duplicate.
+
 ![Suggestion Drawer](./assets/SuggestionDrawer.png)
+
+### Notifications
+
+Authors are notified when their suggestion changes status or receives a comment; admins hear about new suggestions. Each event has its own topic, so users can tune (or mute) them in their standard Backstage notification settings.
+
+![Notifications](./assets/Notifications.png)
+
+![Notification Settings](./assets/NotificationSettings.png)
+
+### Search
+
+With the optional collator module installed, roadmap features show up in Backstage global search with status, vote count, and author.
+
+![Search Results](./assets/SearchResults.png)
 
 ## ✨ Features
 
@@ -39,6 +57,7 @@ The Backstage Roadmap Plugin takes roadmaps out of hidden places like Confluence
 - 🔌 Events for integrators: every change is published to the Backstage events bus
 - 🔐 Role-based permissions (admin vs. regular user)
 - 🆕 Feature suggestion form for users
+- 👯 Duplicate detection: the suggest dialog surfaces similar existing suggestions while you type
 - 🦊 (Optional) GitLab integration — use GitLab issues as the datasource
 
 ## 🛠️ Installation
