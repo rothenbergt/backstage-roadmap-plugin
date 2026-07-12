@@ -187,11 +187,11 @@ import { RoadmapSearchResultListItem } from '@rothenbergt/backstage-plugin-roadm
 
 ### Live updates (signals)
 
-If the [Backstage signals plugin](https://backstage.io/docs/notifications/#signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes. New suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals because the board just falls back to regular refetching.
+If the [Backstage signals plugin](https://backstage.io/docs/notifications/#optional-add-signals) is installed (`@backstage/plugin-signals-backend` in the backend, `@backstage/plugin-signals` in the app), open roadmap boards refresh automatically when anything changes. New suggestions appear, vote counts tick up, and cards move between columns without a page reload. No configuration needed, and everything works unchanged without signals because the board just falls back to regular refetching.
 
 ### Events (for integrators)
 
-The backend publishes every change to the Backstage [events service](https://backstage.io/docs/plugins/events/) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`, `reorder_board`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
+The backend publishes every change to the Backstage [events service](https://github.com/backstage/backstage/tree/master/plugins/events-node) on the `roadmap` topic, with the action in the event metadata: `create_feature`, `update_feature`, `delete_feature`, `change_feature_status`, `toggle_vote`, `create_comment`, `delete_comment`, `reorder_board`. Subscribe from your own backend module to build automations like webhooks, analytics, or syncing accepted features to a tracker:
 
 ```typescript
 events.subscribe({
