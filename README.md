@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/@rothenbergt/backstage-plugin-roadmap-backend?label=roadmap-backend)](https://www.npmjs.com/package/@rothenbergt/backstage-plugin-roadmap-backend)
 [![CI](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/rothenbergt/backstage-roadmap-plugin/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Backstage](https://img.shields.io/badge/Backstage-1.52.1-brightgreen.svg)](https://backstage.io)
+[![Backstage](https://img.shields.io/badge/Backstage-1.55.3-brightgreen.svg)](https://backstage.io)
 [![Node](https://img.shields.io/badge/node-18%20%7C%2020%20%7C%2022-blue.svg)](https://nodejs.org)
 
 ## 🌟 Overview
@@ -318,6 +318,9 @@ We welcome contributions! Here's how to get started.
 
 1. Fork and clone the repository
 2. Install dependencies with `yarn install` (after changing Node major versions, rebuild native modules so **`better-sqlite3`** matches your runtime, otherwise `plugin.test.ts` integration cases are **skipped** while the rest of the suite still runs).
+
+   The root `package.json` pins `@yarnpkg/core` to `4.9.1` under `resolutions`. This is a temporary workaround: `@yarnpkg/core@4.9.2` was published with a `patch:` dependency on `got` that points at a file inside Yarn's own repository, so any install that resolves it fails with `ENOENT ... .yarn/patches/got-npm-11.8.2-....patch` ([yarnpkg/berry#7281](https://github.com/yarnpkg/berry/issues/7281)). It is only reached through `@backstage/cli`'s Yarn package-manager module, so it affects dev tooling, not the published packages. Remove the pin once Yarn ships a fixed `@yarnpkg/core`.
+
 3. Start the dev environment with `yarn dev` (runs the standalone frontend at `localhost:3000` and backend at `localhost:7007` with guest auth, an in-memory database, an allow-all permission policy, plus the catalog, notifications, signals, and search backends so everything is testable locally)
 
    When testing notifications locally, you act as the guest user, and self-notifications are excluded, so the interesting sends target the second configured admin (`user:default/roadmap-admin` in the dev `app-config.yaml`). Create a feature as guest and watch the notifications backend logs (or `GET /api/notifications` with a token for that user). The dev frontend also has a Notifications page at `/notifications`. Search can be verified after the collator's initial delay with `GET /api/search/query?term=<word>`.
