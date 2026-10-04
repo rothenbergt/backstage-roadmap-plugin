@@ -25,14 +25,14 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
-    "@backstage/backend-plugin-api": "^1.9.2",
-    "@backstage/plugin-search-backend-node": "^1.4.5",
-    "@backstage/plugin-search-common": "^1.2.24",
+    "@backstage/backend-plugin-api": "^1.10.1",
+    "@backstage/plugin-search-backend-node": "^1.4.8",
+    "@backstage/plugin-search-common": "^1.2.25",
     "@rothenbergt/backstage-plugin-roadmap-common": "^1.0.0"
   },
   "devDependencies": {
-    "@backstage/backend-test-utils": "^1.11.4",
-    "@backstage/cli": "^0.36.3",
+    "@backstage/backend-test-utils": "^1.11.7",
+    "@backstage/cli": "^0.36.6",
     "msw": "^2.3.1"
   },
   "configSchema": "config.d.ts",
