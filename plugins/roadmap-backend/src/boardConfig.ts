@@ -9,6 +9,8 @@ import {
 import { DatasourceType } from './types';
 
 const ALL_STATUSES = Object.values(FeatureStatus);
+export const DEFAULT_ROADMAP_TITLE = 'Public Roadmap';
+export const DEFAULT_ROADMAP_DESCRIPTION = 'Shape the Future with Us';
 
 function defaultTitle(status: FeatureStatus): string {
   return status;
@@ -103,7 +105,13 @@ export function getBoardConfigResponse(
   config: Config,
   datasource: DatasourceType,
 ): RoadmapBoardConfigResponse {
+  const roadmap = config.getOptionalConfig('roadmap');
+  const description =
+    roadmap?.getOptionalString('description') ??
+    DEFAULT_ROADMAP_DESCRIPTION;
   return {
+    title: roadmap?.getOptionalString('title') ?? DEFAULT_ROADMAP_TITLE,
+    description,
     columns: getMergedBoardColumns(config),
     capabilities: getRoadmapUiCapabilities(datasource),
   };

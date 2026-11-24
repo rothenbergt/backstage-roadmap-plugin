@@ -122,6 +122,10 @@ export interface RoadmapBoardConfigResponse {
   capabilities: RoadmapUiCapabilities;
   // (undocumented)
   columns: RoadmapBoardColumnResolved[];
+  // (undocumented)
+  description: string;
+  // (undocumented)
+  title: string;
 }
 
 // @public

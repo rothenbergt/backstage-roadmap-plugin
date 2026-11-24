@@ -132,6 +132,8 @@ export interface RoadmapUiCapabilities {
  * @public
  */
 export interface RoadmapBoardConfigResponse {
+  title: string;
+  description: string;
   columns: RoadmapBoardColumnResolved[];
   capabilities: RoadmapUiCapabilities;
 }

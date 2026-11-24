@@ -102,6 +102,9 @@ Optional `roadmap.columns` merges with built-in defaults. Each entry may set:
 - `visible`: When `false`, features in that status are omitted from list endpoints (default board keeps **In Progress** hidden).
 - `retentionDays` / `retentionAnchor` (`created` | `updated`): **Database** list filtering only; default list excludes older items; `includeBeyondRetention=true` opts in to the full set (still respecting hidden columns).
 
+The page header is configurable with `roadmap.title` and
+`roadmap.description`.
+
 ### GitLab datasource freeze
 
 When `roadmap.source` is `gitlab`, behavior stays limited to what the GitLab integration already supported: read/list, create feature and comment, voting, and admin status changes via labels. New capabilities (title/description edit, deletes, creator self-service edit/delete, reorder, retention and `includeBeyondRetention`) are **not** implemented for GitLab; related routes return **403 Not allowed** and the frontend hides those actions based on `GET /features/board-config` capabilities.
