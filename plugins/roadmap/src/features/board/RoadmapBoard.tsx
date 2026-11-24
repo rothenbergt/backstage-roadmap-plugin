@@ -256,7 +256,12 @@ export const RoadmapBoard = () => {
   if (configLoading || featuresLoading) {
     return (
       <Page themeId="tool">
-        <Header title="Public Roadmap" subtitle="Shape the Future with Us" />
+        <Header
+          title={boardConfig?.title ?? 'Public Roadmap'}
+          subtitle={
+            boardConfig?.description ?? 'Shape the Future with Us'
+          }
+        />
         <Content className={classes.root}>
           <div className={classes.boardContainer}>
             {[0, 1, 2, 3].map(i => (
@@ -299,7 +304,10 @@ export const RoadmapBoard = () => {
 
   return (
     <Page themeId="tool">
-      <Header title="Public Roadmap" subtitle="Shape the Future with Us" />
+      <Header
+        title={boardConfig.title}
+        subtitle={boardConfig.description}
+      />
       <Content className={classes.root}>
         <ContentHeader title="">
           <Box className={classes.contentHeaderActions}>

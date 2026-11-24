@@ -205,6 +205,17 @@ events.subscribe({
 
 ### Board columns (labels and visibility)
 
+### Page title and description
+
+Set `roadmap.title` and `roadmap.description` to customize the page header:
+
+```yaml
+roadmap:
+  title: Public Roadmap
+  description: Shape the Future with Us
+```
+
+
 Optional `roadmap.columns` in `app-config.yaml` customizes each status column on the roadmap board. The backend merges your entries with built-in defaults and exposes the resolved layout to the UI via `GET /features/board-config` (so the browser does not parse this YAML itself).
 
 Add a list under `columns`. Each item supports:

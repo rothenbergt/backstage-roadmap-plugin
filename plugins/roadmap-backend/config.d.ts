@@ -13,6 +13,17 @@ export interface Config {
     adminUsers?: string[];
 
     /**
+     * Page title shown in the roadmap header. Defaults to "Public Roadmap".
+     */
+    title?: string;
+
+    /**
+     * Page description shown below the title. Defaults to
+     * "Shape the Future with Us".
+     */
+    description?: string;
+
+    /**
      * GitLab datasource connection details. Required when source is 'gitlab'.
      */
     gitlab?: {

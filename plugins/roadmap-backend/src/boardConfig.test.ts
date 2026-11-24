@@ -46,7 +46,22 @@ describe('boardConfig', () => {
   it('getBoardConfigResponse bundles columns and capabilities', () => {
     const config = new ConfigReader({});
     const res = getBoardConfigResponse(config, 'database');
+    expect(res.title).toBe('Public Roadmap');
+    expect(res.description).toBe('Shape the Future with Us');
     expect(res.columns.length).toBeGreaterThan(0);
     expect(res.capabilities.adminReorder).toBe(true);
   });
+
+  it('customizes the page title and description', () => {
+    const config = new ConfigReader({
+      roadmap: {
+        title: 'Public Requests',
+        description: 'Help prioritize what we build',
+      },
+    });
+    const res = getBoardConfigResponse(config, 'database');
+    expect(res.title).toBe('Public Requests');
+    expect(res.description).toBe('Help prioritize what we build');
+  });
+
 });
